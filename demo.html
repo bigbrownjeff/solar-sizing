@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Honest-arithmetic solar sizing — illustrative demo, public inputs</title>
+<style>
+  :root{
+    --ink:#1b1b1b; --muted:#6b6b6b; --line:#e2e2e0; --paper:#fbfbf9;
+    --honest:#2f6f4e; --honestbg:#eaf2ed;        /* the right-sized column */
+    --optim:#a3532b;                             /* configurator optimism */
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:'Source Serif Pro',Georgia,'Times New Roman',serif;
+    --sans:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  .wrap{max-width:880px;margin:0 auto;padding:28px 28px 64px}
+  header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{font-family:var(--serif);font-size:30px;line-height:1.12;margin:6px 0 6px}
+  .sub{color:var(--muted);max-width:68ch;font-size:15px;margin:0}
+  .controls{display:grid;grid-template-columns:1fr 1fr auto;gap:22px;align-items:end;margin:18px 0 16px}
+  .ctl label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .ctl .rangeval{color:var(--ink);font-weight:600;letter-spacing:0;text-transform:none;font-size:13px}
+  input[type=range]{width:100%;accent-color:var(--honest)}
+  input[type=range]:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .ctl .ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+  button{font-family:var(--sans);font-size:13px;border:1px solid var(--ink);background:#fff;color:var(--ink);padding:8px 14px;border-radius:2px;cursor:pointer}
+  button:active{transform:translateY(1px)}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 18px}
+  .kpi{background:#fff;border:1px solid var(--line);padding:12px 14px}
+  .kpi .k{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .kpi .v{font-family:var(--serif);font-size:26px;font-weight:600}
+  .kpi .v.good{color:var(--honest)}
+  .kpi .d{font-size:12px;color:var(--muted);margin-top:2px}
+  .delta{font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-left:3px solid var(--honest);background:var(--honestbg);padding:10px 12px;margin:0 0 18px}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);font-size:13px}
+  caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 0 8px}
+  th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:break-word}
+  th{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:#f4f4f2;font-weight:600}
+  col.c1{width:44%}col.c2{width:28%}col.c3{width:28%}
+  td.opt{color:var(--optim)}
+  td.hon{color:var(--honest);font-weight:600}
+  tr.out td{font-weight:600}
+  tr.out td:first-child{font-weight:400}
+  .marginal{border:1px solid var(--line);border-left:3px solid var(--optim);background:#fff;padding:12px 14px;margin:18px 0 0;font-size:13.5px}
+  .marginal b{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--optim)}
+  details{border-top:1px solid var(--line);margin-top:18px;padding-top:10px}
+  summary{cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+  .howit{font-size:13px;margin-top:8px}
+  .howit ul{margin:6px 0 0;padding-left:18px}
+  .howit li{margin:3px 0}
+  footer{margin-top:30px;border-top:1px solid var(--line);padding-top:14px;font-size:12.5px;color:var(--muted)}
+  footer a{color:var(--ink)}
+  @media(max-width:640px){
+    .controls{grid-template-columns:1fr}
+    .kpis{grid-template-columns:1fr}
+    table{font-size:11.5px}
+    th,td{padding:6px 8px}
+    .wrap{padding:20px 16px 48px}
+    h1{font-size:clamp(24px,7vw,30px)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Illustrative demo · public inputs, no site data · solar-sizing</div>
+    <h1>The number the configurator won't show you</h1>
+    <p class="sub">The note's twenty-row sizing arithmetic, live, on its San Jose NEM-3.0 scenario —
+    14,000 kWh/yr household, PG&amp;E E-TOU-C, $3.00/Wp. The configurator column is what a tool built
+    for legacy 1:1 net metering still recommends. The honest column recomputes as you move the two
+    inputs every configurator buries: <strong>the shading derate from an actual roof walk</strong> and
+    <strong>the post-NEM-3.0 export credit</strong>. Not a quote — the arithmetic you'd run before trusting one.</p>
+  </header>
+
+  <div class="controls">
+    <div class="ctl">
+      <label for="in-derate">Shading derate — roof walk
+        <span class="rangeval" id="derate-val">0.85</span></label>
+      <input type="range" id="in-derate" min="0.80" max="1.00" step="0.01" value="0.85"
+        aria-describedby="derate-ends">
+      <div class="ends" id="derate-ends"><span>0.80 heavy shade</span><span>1.00 clear sky</span></div>
+    </div>
+    <div class="ctl">
+      <label for="in-export">Export credit — $/kWh sent to grid
+        <span class="rangeval" id="export-val">$0.05</span></label>
+      <input type="range" id="in-export" min="0" max="0.38" step="0.01" value="0.05"
+        aria-describedby="export-ends">
+      <div class="ends" id="export-ends"><span>$0.00 non-export</span><span>$0.38 ≈ legacy 1:1</span></div>
+    </div>
+    <button id="reset" type="button">Reset to FIG.1 defaults</button>
+  </div>
+
+  <!-- Static boot numbers below (KPIs, delta, table, marginal note) equal render()'s first
+       output at derate 0.85 / export $0.05 — the note's FIG.1 honest column. Re-derive them
+       if any model constant changes. -->
+  <div class="kpis" aria-live="polite">
+    <div class="kpi"><div class="k">Right-sized system</div><div class="v good" id="kpi-size">7.2 kWp</div>
+      <div class="d">vs. the configurator's 9.1 kWp</div></div>
+    <div class="kpi"><div class="k">Net cost after 30% ITC</div><div class="v" id="kpi-net">$15,120</div>
+      <div class="d" id="kpi-net-d">$21,600 installed − $6,480 ITC</div></div>
+    <div class="kpi"><div class="k">Simple payback</div><div class="v" id="kpi-pb">8.0 yr</div>
+      <div class="d">on tariff-weighted savings of <span id="kpi-sav">$1,890</span>/yr</div></div>
+  </div>
+
+  <div class="delta" id="delta" aria-live="polite">Same roof, honest inputs: 1.9 kWp smaller and
+    $5,700 less sticker than the configurator's recommendation — before either system makes a kilowatt-hour.</div>
+
+  <table>
+    <caption>FIG.1, live — San Jose scenario, configurator vs. honest arithmetic</caption>
+    <colgroup><col class="c1"><col class="c2"><col class="c3"></colgroup>
+    <thead><tr><th scope="col">Input / output</th><th scope="col">Configurator-optimistic</th><th scope="col">Honest arithmetic</th></tr></thead>
+    <tbody>
+      <tr><td>Shading derate</td><td class="opt">0.97 — satellite view</td><td class="hon" id="t-derate">0.85 — roof walk</td></tr>
+      <tr><td>Export credit ($/kWh)</td><td class="opt">$0.38 — legacy 1:1</td><td class="hon" id="t-export">$0.05 — NEM-3.0</td></tr>
+      <tr><td>Annual specific yield (kWh/kWp/yr)</td><td class="opt">~1,540</td><td class="hon" id="t-yield">~1,348</td></tr>
+      <tr class="out"><td>Recommended system size (kWp)</td><td class="opt">9.1 — sized to 100% annual offset</td><td class="hon" id="t-size">7.2 — sized to the sweet spot</td></tr>
+      <tr><td>Installed cost @ $3.00/Wp</td><td class="opt">$27,300</td><td class="hon" id="t-cost">$21,600</td></tr>
+      <tr><td>Federal ITC (30%)</td><td class="opt">−$8,190</td><td class="hon" id="t-itc">−$6,480</td></tr>
+      <tr class="out"><td>Net cost</td><td class="opt">$19,110</td><td class="hon" id="t-net">$15,120</td></tr>
+      <tr><td>Annual savings (tariff-weighted)</td><td class="opt">$2,580 — overstated</td><td class="hon" id="t-sav">$1,890</td></tr>
+      <tr class="out"><td>Simple payback</td><td class="opt">7.4 yr — on a credit that no longer exists</td><td class="hon" id="t-pb">8.0 yr</td></tr>
+    </tbody>
+  </table>
+
+  <div class="marginal" id="marginal" aria-live="polite"><b>The reason to buy less — </b>
+    <span id="marginal-txt">past the self-consumption sweet spot, the next kWp is mostly exported.
+    At your $0.05 export credit it earns about $67/yr against $2,100 of net cost — a 31-year marginal
+    payback. No configurator shows you this number, because no configurator is paid to show you a
+    reason to buy less.</span></div>
+
+  <details>
+    <summary>How the arithmetic works</summary>
+    <div class="howit">
+      Napkin-checkable, per the note: every constant is FIG.1's.
+      <ul>
+        <li><strong>Yield:</strong> specific yield = 1,586 kWh/kWp/yr pre-shading (FIG.1's basis: ~1,348 ÷ 0.85) × your derate.</li>
+        <li><strong>Size:</strong> the honest column holds FIG.1's sweet-spot energy target (9,706 kWh/yr ≈ 69% annual offset) — a dirtier roof needs more panels to hit the same energy, so size and cost rise as derate falls. The configurator column sizes to 100% annual offset at a 0.97 derate; it never moves, because the configurator doesn't ask.</li>
+        <li><strong>Savings:</strong> 55% of generation is self-consumed (FIG.1's scenario input) and displaces imports at $0.313/kWh — the all-hours tariff-weighted rate FIG.1's savings row implies, below the $0.38 on-peak headline. The other 45% earns your export-credit slider.</li>
+        <li><strong>Payback:</strong> net cost after 30% ITC ÷ annual savings. No discounting, no escalation — simple on purpose.</li>
+      </ul>
+    </div>
+  </details>
+
+  <footer>
+    Illustrative scenario only — public inputs (NREL NSRDB irradiance, PG&amp;E E-TOU-C tariff,
+    NREL Q4 2025 cost benchmark), an invented household, no site data, no quotes. Nothing you set
+    here leaves the page. Not sizing advice for your roof: the note's first instruction is to walk it.<br>
+    Built by Jeff Pinto — Loughborough MSc Renewable Energy (Distinction), SkyPower field experience.
+    Source note: <a href="https://jeffpinto.com/notes/solar-sizing/">jeffpinto.com/notes/solar-sizing</a> ·
+    Advisory and pro formas: <a href="https://jeffpinto.com/engage/">jeffpinto.com/engage</a>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---- mirror of note.md FIG.1 (San Jose, NEM-3.0 scenario) --------------------
+  // No reference .py exists for this brief-tier concept; the anchor is the note's
+  // published table. At the default sliders (derate 0.85, export $0.05) every
+  // output below reproduces FIG.1's honest column exactly.
+  var CONSUMPTION = 14000;   // kWh/yr, household incl. EV (FIG.1)
+  var BASE_YIELD  = 1586;    // kWh/kWp/yr pre-shading — FIG.1's basis: ~1,348/0.85 = ~1,540/0.97
+  var TARGET_GEN  = 9706;    // kWh/yr — FIG.1's honest generation (7.2 kWp × 1,348); the
+                             // self-consumption sweet spot the note's spreadsheet found (~69%
+                             // annual offset). Held constant: shade changes the panel count
+                             // needed to reach it, not the target itself.
+  var COST_PER_KWP = 3000;   // $/kWp installed — NREL Q4 2025 benchmark ($3.00/Wp, FIG.1)
+  var ITC = 0.30;            // federal investment tax credit (FIG.1)
+  var SELF_CONS = 0.55;      // self-consumption ratio — FIG.1 scenario input
+  var IMPORT_TW = 0.31312;   // $/kWh — tariff-weighted average import rate displaced, implied
+                             // by FIG.1's savings row (1,890 = 0.55·9,706·x + 0.45·9,706·0.05).
+                             // Below the $0.38 on-peak number: not every displaced kWh is on-peak.
+  var MARGINAL_NET = COST_PER_KWP * (1 - ITC); // $2,100 — the note's "next kWp" arithmetic
+
+  // ---- state --------------------------------------------------------------------
+  var derate = 0.85;         // boot = FIG.1 roof-walk derate (the west-side redwood)
+  var exportRate = 0.05;     // boot = FIG.1 NEM-3.0 export credit
+
+  // ---- model (pure; full precision throughout) -----------------------------------
+  function compute(){
+    var yieldKwp = BASE_YIELD * derate;            // kWh/kWp/yr after shading
+    var size = TARGET_GEN / yieldKwp;              // kWp to hit the sweet-spot energy target
+    var cost = size * COST_PER_KWP;
+    var itc = cost * ITC;
+    var net = cost - itc;
+    var selfKwh = SELF_CONS * TARGET_GEN;          // generation is pinned at the target
+    var expKwh = TARGET_GEN - selfKwh;
+    var savings = selfKwh * IMPORT_TW + expKwh * exportRate;
+    var payback = net / savings;                   // savings > 0 always (selfKwh·IMPORT_TW > 0)
+    var margVal = yieldKwp * exportRate;           // $/yr if the next kWp is all-exported —
+                                                   // the note's lower bound past the sweet spot
+    var margPb = margVal > 0 ? MARGINAL_NET / margVal : Infinity;
+    return { yieldKwp:yieldKwp, size:size, cost:cost, itc:itc, net:net,
+             savings:savings, payback:payback, margVal:margVal, margPb:margPb };
+  }
+
+  // ---- formatting: round before display (model math stays full-precision) --------
+  function usd(v, step){ // round to nearest `step` dollars, e.g. cost to $100 like FIG.1
+    var r = Math.round(v / step) * step;
+    return "$" + r.toLocaleString("en-US");
+  }
+  function kwp(v){ return (Math.round(v * 10) / 10).toFixed(1); }       // 1 dp, FIG.1 style
+  function yrs(v){ return (Math.round(v * 10) / 10).toFixed(1); }       // 1 dp
+  function yieldFmt(v){ return "~" + Math.round(v).toLocaleString("en-US"); } // FIG.1's tilde
+  function rate(v){ return "$" + v.toFixed(2); }
+
+  // ---- render ---------------------------------------------------------------------
+  var $ = function(id){ return document.getElementById(id); };
+  function render(){
+    var m = compute();
+
+    $("derate-val").textContent = derate.toFixed(2);
+    $("export-val").textContent = rate(exportRate);
+
+    $("kpi-size").textContent = kwp(m.size) + " kWp";
+    $("kpi-net").textContent = usd(m.net, 10);
+    $("kpi-net-d").textContent = usd(m.cost, 100) + " installed − " + usd(m.itc, 10) + " ITC";
+    $("kpi-pb").textContent = yrs(m.payback) + " yr";
+    $("kpi-sav").textContent = usd(m.savings, 10);
+
+    // vs the static configurator column; within the slider domain (derate ≥ 0.80) the honest
+    // array is always smaller and cheaper than the 9.1 kWp / $27,300 fixture
+    var dSize = 9.1 - m.size;
+    var dCost = 27300 - Math.round(m.cost / 100) * 100;
+    $("delta").textContent = "Same roof, honest inputs: " + kwp(dSize) + " kWp smaller and " +
+      usd(dCost, 100) + " less sticker than the configurator's recommendation — before either " +
+      "system makes a kilowatt-hour.";
+
+    $("t-derate").textContent = derate.toFixed(2) + (derate <= 0.90 ? " — roof walk" : " — near-clear roof");
+    $("t-export").textContent = rate(exportRate) + (exportRate <= 0.10 ? " — NEM-3.0" : exportRate >= 0.35 ? " — ≈ legacy 1:1" : "");
+    $("t-yield").textContent = yieldFmt(m.yieldKwp);
+    $("t-size").textContent = kwp(m.size) + " — sized to the sweet spot";
+    $("t-cost").textContent = usd(m.cost, 100);
+    $("t-itc").textContent = "−$" + usd(m.itc, 10).slice(1);
+    $("t-net").textContent = usd(m.net, 10);
+    $("t-sav").textContent = usd(m.savings, 10);
+    $("t-pb").textContent = yrs(m.payback) + " yr";
+
+    // marginal-kWp verdict — the note's "reason to buy less", with its honest failure modes
+    var t;
+    if (m.margVal <= 0){
+      t = "past the self-consumption sweet spot, the next kWp is mostly exported. On a non-export " +
+          "tariff it earns $0/yr against $2,100 of net cost — it never pays back. Every panel past " +
+          "the sweet spot is a gift to the grid.";
+    } else if (m.margPb <= 12){
+      t = "at a " + rate(exportRate) + " export credit the next kWp past the sweet spot earns about " +
+          usd(m.margVal, 1) + "/yr against $2,100 of net cost — roughly " + yrs(m.margPb) +
+          " years to pay back. At rates this close to 1:1, oversizing was rational. That's the " +
+          "pre-NEM-3.0 world the configurator's model was built in.";
+    } else {
+      t = "past the self-consumption sweet spot, the next kWp is mostly exported. At your " +
+          rate(exportRate) + " export credit it earns about " + usd(m.margVal, 1) + "/yr against " +
+          "$2,100 of net cost — a " + Math.round(m.margPb) + "-year marginal payback. No configurator " +
+          "shows you this number, because no configurator is paid to show you a reason to buy less.";
+    }
+    $("marginal-txt").textContent = t;
+  }
+
+  // ---- wiring -----------------------------------------------------------------------
+  function readSliders(){
+    // sliders are range inputs with fixed bounds; parseFloat of their value is always finite,
+    // but clamp anyway so a programmatic value can't push the model out of its domain
+    var d = parseFloat($("in-derate").value); derate = isFinite(d) ? Math.min(1, Math.max(0.8, d)) : 0.85;
+    var e = parseFloat($("in-export").value); exportRate = isFinite(e) ? Math.min(0.38, Math.max(0, e)) : 0.05;
+    render();
+  }
+  $("in-derate").addEventListener("input", readSliders);
+  $("in-export").addEventListener("input", readSliders);
+  $("reset").addEventListener("click", function(){ // exact boot state
+    $("in-derate").value = "0.85";
+    $("in-export").value = "0.05";
+    readSliders();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

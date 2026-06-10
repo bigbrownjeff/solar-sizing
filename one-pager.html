@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First-principles solar sizing — one-pager · Jeff Pinto</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#5f5b54; --rule:#d8d4cc; --paper:#fbfaf7;
+    --accent:#2f6f4e; --accent-soft:#eaf2ed;
+    --serif:"Source Serif Pro","Iowan Old Style",Georgia,"Times New Roman",serif;
+    --sans:"Inter","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--sans); color:var(--ink); background:#efece6;
+    line-height:1.5; -webkit-font-smoothing:antialiased; font-size:14px;
+  }
+  .sheet{
+    max-width:840px; margin:24px auto; background:var(--paper);
+    padding:48px 56px 40px; border:1px solid var(--rule);
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 10px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:600; font-size:30px; line-height:1.12;
+    margin:0 0 12px; letter-spacing:-.01em;
+  }
+  .dek{
+    font-family:var(--serif); font-style:italic; font-size:16.5px;
+    color:#36322c; margin:0 0 8px; line-height:1.4;
+  }
+  .byline{
+    font-family:var(--mono); font-size:10.5px; color:var(--muted);
+    letter-spacing:.04em; margin:14px 0 0; padding-top:14px;
+    border-top:2px solid var(--ink);
+  }
+  .byline a{color:var(--accent); text-decoration:none;}
+  h2{
+    font-family:var(--mono); font-size:11px; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--ink); margin:30px 0 9px;
+    padding-bottom:5px; border-bottom:1px solid var(--rule);
+  }
+  p{margin:0 0 11px;}
+  .lead{font-size:14.5px;}
+  strong{font-weight:600;}
+  .accent{color:var(--accent); font-weight:600;}
+  .cols a{color:var(--accent); font-weight:600; text-decoration:none;}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:26px;}
+  ul{margin:0 0 11px; padding-left:18px;}
+  li{margin:0 0 6px;}
+  .kpis{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+    border:1px solid var(--rule); margin:6px 0 4px;
+  }
+  .kpi{padding:14px 16px; border-right:1px solid var(--rule);}
+  .kpi:last-child{border-right:0;}
+  .kpi .n{font-family:var(--serif); font-size:25px; font-weight:600; color:var(--accent); line-height:1;}
+  .kpi .l{font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-top:6px;}
+  .wedge{border:1px solid var(--rule);}
+  .wedge table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .wedge th,.wedge td{text-align:left; padding:9px 14px; border-bottom:1px solid var(--rule); vertical-align:top;}
+  .wedge th{font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:#f4f1ea;}
+  .wedge tr:last-child td{border-bottom:0;}
+  .wedge .us{color:var(--accent); font-weight:600;}
+  .pilot{background:var(--accent-soft); border-left:3px solid var(--accent); padding:14px 18px; margin:6px 0;}
+  .pilot ol{margin:6px 0 0; padding-left:20px;}
+  .pilot li{margin:0 0 4px; font-size:13px;}
+  .price-row{display:flex; justify-content:space-between; align-items:baseline; gap:14px; padding:7px 0; border-bottom:1px dotted var(--rule);}
+  .price-row:last-child{border-bottom:0;}
+  .price-row .what{font-size:13px;}
+  .price-row .amt{font-family:var(--serif); font-weight:600; font-size:15px;}
+  .ask{margin-top:26px; padding:18px 20px; border:2px solid var(--ink); background:#fff;}
+  .ask h2{margin-top:0; border:0; padding:0;}
+  .ask p{margin-bottom:6px;}
+  .ask a{color:var(--accent); font-weight:600; text-decoration:none;}
+  .fine{font-size:11px; color:var(--muted); margin-top:4px;}
+  @page{size:letter portrait; margin:0.4in;}
+  @media print{
+    body{background:#fff; font-size:10.5px; line-height:1.32;}
+    .sheet{margin:0; max-width:none; border:0; padding:0; background:#fff;}
+    .eyebrow{font-size:8px; margin-bottom:5px;}
+    h1{font-size:19px; margin-bottom:7px;}
+    .dek{font-size:11.5px; margin-bottom:5px;}
+    h2{font-size:8.5px; margin:11px 0 5px; padding-bottom:3px;}
+    .lead{font-size:10.5px;}
+    p{margin:0 0 7px;}
+    ul{margin-bottom:6px;}
+    li{margin-bottom:2px;}
+    .cols{gap:20px;}
+    .kpi{padding:6px 12px;}
+    .kpi .n{font-size:16px;}
+    .kpi .l{font-size:7.5px; margin-top:3px;}
+    .wedge table{font-size:8.5px;}
+    .wedge th,.wedge td{padding:3.5px 9px;}
+    .pilot{padding:8px 12px; margin:4px 0;}
+    .pilot li{font-size:9px; margin-bottom:2px;}
+    .price-row{padding:3.5px 0;}
+    .price-row .what{font-size:9px;}
+    .price-row .amt{font-size:11px;}
+    .fine{font-size:7.5px; margin-top:3px;}
+    .ask{margin-top:10px; padding:9px 13px;}
+    .ask p{margin-bottom:4px;}
+    .byline{font-size:7.5px; margin-top:8px; padding-top:6px;}
+    .kpis,.wedge,.pilot,.ask,.price-row{break-inside:avoid;}
+    .pilot,.wedge th{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    a{color:var(--ink) !important;}
+  }
+  @media (max-width:620px){
+    .sheet{padding:30px 22px;}
+    .cols,.kpis{grid-template-columns:1fr;}
+    .kpi{border-right:0; border-bottom:1px solid var(--rule);}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <p class="eyebrow">Advisory one-pager · Doing / Renewables</p>
+  <h1>The honest solar sizing — the number the configurator won't show you.</h1>
+  <p class="dek">A twenty-row first-principles spreadsheet that corrects three structural optimisms in every online configurator. For residential: a more honest payback. For commercial rooftop: the bones of a pro forma a lender can interrogate.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">$5,700</div><div class="l">sticker cut from right-sizing — worked San Jose scenario</div></div>
+    <div class="kpi"><div class="n">$0.05 vs $0.38</div><div class="l">NEM-3.0 export credit vs. on-peak import rate</div></div>
+    <div class="kpi"><div class="n">50–500&nbsp;kWp</div><div class="l">commercial pro forma range</div></div>
+  </div>
+
+  <h2>The problem</h2>
+  <p class="lead">Every online solar configurator returns a system recommendation and a payback estimate. The number is too optimistic in at least three predictable ways — <strong>shading</strong> (satellite tools miss the 4pm redwood), <strong>on-peak vs. annual energy</strong> (configurators divide annual kWh output by annual consumption as if your utility bill were uniform), and <strong>export-rate economics</strong> (post-NEM-3.0, energy exported to the grid is credited at ~$0.05/kWh, not the ~$0.38/kWh import rate). None of this is dishonest on purpose; the installer is paid per watt installed and the configurator is paid per lead generated. <strong>The optimism is structural.</strong></p>
+
+  <div class="cols">
+    <div>
+      <h2>What it is</h2>
+      <p>A twenty-row spreadsheet that sizes a PV system from first principles — roof geometry, NREL/PVGIS irradiance, actual shading derate from a roof walk, tariff-schedule-weighted savings, and the self-consumption sweet spot that NEM-3.0 created. Output: a recommended kWp, a net cost after incentives (DSIRE), and a simple payback that holds up under scrutiny. The same kernel, extended with demand-charge and PPA rows, is the pro forma for a 50–500 kWp commercial-rooftop project. The arithmetic runs live in the <a href="demo.html">demo beside this sheet</a> (illustrative San Jose defaults): change the shading derate and export rate, and the recommended size and payback recompute.</p>
+    </div>
+    <div>
+      <h2>Who it's for</h2>
+      <ul>
+        <li><strong>Homeowner with a quote in hand</strong> — wants a size and payback they trust before signing.</li>
+        <li><strong>Commercial real-estate owner / operator</strong> — rooftop >30,000 sq.ft., evaluating a lease or PPA offer.</li>
+        <li><strong>C&I solar developer</strong> — a lender kicked the pro forma back; needs a model that survives diligence.</li>
+        <li><strong>Renewables coordinator / EPC PM</strong> — wants the sizing methodology documented, not vendor-supplied.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>The wedge — vs. every online configurator</h2>
+  <p>The configurator is fast and free, and the hardware math is fine. What it structurally can't show you is a reason to buy less.</p>
+  <div class="wedge">
+    <table>
+      <tr><th>Dimension</th><th>Online configurator / installer quote</th><th>This spreadsheet</th></tr>
+      <tr><td>Shading</td><td>Satellite imagery — misses 4pm trees, seasonal ridge lines</td><td class="us">Roof walk at three times of day; explicit derate row</td></tr>
+      <tr><td>Savings metric</td><td>Annual kWh % offset — ignores TOU rate shape</td><td class="us">Tariff-schedule-weighted savings; correct NEM-3.0 export rate</td></tr>
+      <tr><td>System size</td><td>Maximises kWh output — oversizes past self-consumption sweet spot</td><td class="us">Optimises at self-consumption boundary; stops where marginal return collapses</td></tr>
+      <tr><td>Payback</td><td>7.4 yr (illustrative San Jose, NEM-3.0 scenario)</td><td class="us">8.0 yr — same scenario, honest inputs</td></tr>
+      <tr><td>Installed cost</td><td>$27,300 (9.1 kWp over-recommended)</td><td class="us">$21,600 (7.2 kWp right-sized) — $5,700 less</td></tr>
+      <tr><td>25-yr NPV</td><td>$16,800 (includes non-existent 1:1 export credit)</td><td class="us">$11,200 — based on actual NEM-3.0 credit rate</td></tr>
+    </table>
+  </div>
+  <p class="fine">San Jose scenario: 14,000 kWh/yr household (incl. EV), PG&E E-TOU-C tariff, NREL Q4 2025 $3.00/Wp benchmark. Illustrative; not a site quote.</p>
+
+  <div class="cols">
+    <div>
+      <h2>The commercial pro forma offer</h2>
+      <div class="pilot">
+        <ol>
+          <li><strong>Scoping call.</strong> Confirm roof area, tariff structure, ownership model (PPA/lease/direct), lender requirements.</li>
+          <li><strong>Site inputs.</strong> Pull NREL/PVGIS irradiance; walk or review shading report; get three competitive EPC quotes.</li>
+          <li><strong>Pro forma build.</strong> Twenty-row kernel + demand-charge, depreciation (MACRS), PPA/IRR, and simple payback rows. Sensitivity table on export rate and system size.</li>
+          <li><strong>Deliverable.</strong> Spreadsheet + one-page narrative — a documented model, yours to own.</li>
+        </ol>
+      </div>
+      <p class="fine">Handed over at completion. Not a black-box quote — a model your lender's engineer can audit row by row.</p>
+    </div>
+    <div>
+      <h2>Pricing</h2>
+      <div class="price-row"><span class="what"><strong>Residential sizing review</strong> — quote audit + right-sized recommendation</span><span class="amt">$1,500–2,500</span></div>
+      <div class="price-row"><span class="what"><strong>Commercial pro forma</strong> — 50–500 kWp, model + sensitivity table + narrative</span><span class="amt">$6–14k</span></div>
+      <div class="price-row"><span class="what"><strong>Developer retainer</strong> — standing pro-forma review across a project pipeline</span><span class="amt">monthly</span></div>
+      <p class="fine" style="margin-top:10px;">Fixed-fee. Indicative ranges; final scope set on the scoping call. Residential review runs 3–5 days; commercial pro forma 2–3 weeks.</p>
+    </div>
+  </div>
+
+  <div class="ask">
+    <h2>The ask</h2>
+    <p>One 30-minute scoping call. <strong>Bring the quote</strong> — or the draft pro forma — and a recent utility bill. I'll check the export-rate and shading assumptions against your actual tariff schedule on the call; you'll know before we hang up whether the number is honest. And if it holds up, I'll say so — half an hour to confirm a good deal.</p>
+    <p><strong>Start here:</strong> <a href="https://jeffpinto.com/engage/">jeffpinto.com/engage/</a> &nbsp;·&nbsp; Method: <a href="https://jeffpinto.com/notes/solar-sizing/">the sizing note</a></p>
+  </div>
+
+  <p class="byline">Built by Jeff Pinto — Loughborough MSc Renewable Energy (Distinction), SkyPower field experience, Meta / Uber / IBM + six startups. Advisory and pro formas: <a href="https://jeffpinto.com">jeffpinto.com</a></p>
+
+</div>
+</body>
+</html>

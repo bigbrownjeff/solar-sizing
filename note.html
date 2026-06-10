@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First-principles residential solar sizing. · Jeff Pinto</title>
+<meta name="description" content="A twenty-row spreadsheet beats every online configurator when the configurator has a structural incentive not to be honest. Here&#x27;s the honest arithmetic, with a payback table to prove it.">
+<link rel="stylesheet" href="../_assets/note.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <a class="back" href="../index.html">&larr; The <span class="rcpt">Receipts</span> &mdash; prototypes</a>
+    <a class="out" href="https://jeffpinto.com" target="_blank" rel="noopener">jeffpinto.com &uarr;</a>
+  </div>
+
+  <section class="note-hero">
+    <h1 class="h1 note-title">First-principles residential solar sizing.</h1>
+    <p class="deck note-deck">A twenty-row spreadsheet beats every online configurator when the configurator has a structural incentive not to be honest. Here&#x27;s the honest arithmetic, with a payback table to prove it.</p>
+    <div class="eyebrow note-hero-meta"><span class="sec">DOING</span> · UPDATED JUN 8, 2026 · 8 MIN READ · 1,050 WORDS</div>
+  </section>
+
+  <article class="note-body case-prose">
+<p>The spreadsheet I'm about to show you isn't complicated. It has twenty rows. You could build it in an hour on a rainy Saturday, which, as a stubborn derive-it-myself type who distrusts any quote he can't rebuild from inputs, I find to be a reasonable entry price for a decision in the $20–$40k range.</p>
+<p>What the spreadsheet does is correct three specific optimisms that the commercial solar configurators and installer salespeople have a structural incentive to leave uncorrected. None of this is malicious. The installers are paid per watt installed; the configurators are optimised for lead generation. Those incentives produce biases that are entirely predictable and entirely worth accounting for before you sign anything.</p>
+<h3>The three things they get wrong</h3>
+<p>Shading is the first one. Satellite-based tools rate a roof against its noon-hour sky clearance and miss the tree, the vent stack, and the neighbour's ridge line that cut your east-facing generation by 90 minutes every morning. A roof that looks clear from the sky can lose 10–15% of annual yield and a much larger fraction of on-peak yield to a mature oak that no satellite tool is going to warn you about. You cannot fix this with software; you have to walk the roof at three times of day.</p>
+<p>The second is the annual-vs-on-peak confusion. Configurators report a "% offset" — your system's annual kWh output as a fraction of your annual consumption — and present it as if your utility bill is uniform across the year. In any tariff structure with time-of-use rates, the energy your panels produce at 2pm on a weekday in July is worth a lot more than the energy they produce at 10am on a Sunday in January. The spreadsheet weights generation by the actual tariff schedule before it computes savings. The number that comes out is usually smaller than the configurator's, which is why the configurator doesn't do this calculation.</p>
+<p>The third is the export-rate cliff. Post-NEM-3.0, the gap between what California utilities pay you for exported energy and what they charge you to import it has widened from roughly parity to roughly 3–4×. Once your system is producing more than your household is consuming in real time, every additional kilowatt-hour you send to the grid is credited at the export rate, not the import rate. The correct system size is the one that maximises savings at the self-consumption sweet spot, not the one that maximises annual kWh output. Those are different numbers — often by 2–4 kWp — and the difference matters a lot to payback.</p>
+<h3>A worked example: San Jose, NEM-3.0 tariff</h3>
+<p>The scenario below uses publicly available inputs — NREL NSRDB irradiance for San Jose (5.5 peak sun hours, GHI 2,000 kWh/m²/yr), PG&amp;E's current E-TOU-C tariff schedule, and a mid-market installed cost of $3.00/Wp (NREL Q4 2025 residential benchmark). The household: 10,000 kWh/yr consumption, one EV adding ~4,000 kWh/yr, a south-facing roof at 15° pitch.</p>
+<p>The "configurator-optimistic" column uses a shading derate of 0.97 (near-zero penalty), annual-kWh offset as the metric, and a legacy 1:1 net metering export credit to approximate what a pre-NEM-3.0-era tool, or a tool that hasn't been updated, still tends to output. The "honest arithmetic" column applies the actual shading derate from a roof walk (0.85 — there's a mature redwood on the west side), weights generation by the E-TOU-C schedule, and uses PG&amp;E's current non-export credit of $0.05/kWh versus an import rate averaging $0.38/kWh on-peak.</p>
+<div class="figure">
+  <div class="cap"><span>FIG. 1 · Payback comparison — San Jose, 14,000 kWh/yr household (incl. EV)</span><strong>Honest arithmetic vs. configurator-optimistic, NEM-3.0 tariff</strong></div>
+  <div class="body">
+    <table class="data" style="font-size:13px;">
+      <thead>
+        <tr>
+          <th style="width:44%;">INPUT / OUTPUT</th>
+          <th style="width:28%;">CONFIGURATOR-OPTIMISTIC</th>
+          <th style="width:28%;">HONEST ARITHMETIC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Annual consumption (kWh/yr)</td><td>14,000</td><td>14,000</td></tr>
+        <tr><td>Annual GHI — NREL NSRDB (kWh/m²/yr)</td><td>2,000</td><td>2,000</td></tr>
+        <tr><td>Shading derate</td><td>0.97</td><td>0.85</td></tr>
+        <tr><td>Annual specific yield (kWh/kWp/yr)</td><td>~1,540</td><td>~1,348</td></tr>
+        <tr><td>Export credit rate ($/kWh)</td><td>$0.38 (legacy 1:1)</td><td>$0.05 (NEM-3.0)</td></tr>
+        <tr><td>Self-consumption ratio</td><td>55%</td><td>55%</td></tr>
+        <tr><td>Recommended system size (kWp)</td><td>9.1 kWp</td><td>7.2 kWp</td></tr>
+        <tr><td>Installed cost (@ $3.00/Wp, pre-incentive)</td><td>$27,300</td><td>$21,600</td></tr>
+        <tr><td>Federal ITC (30%)</td><td>−$8,190</td><td>−$6,480</td></tr>
+        <tr><td>Net cost</td><td>$19,110</td><td>$15,120</td></tr>
+        <tr><td>Annual savings (tariff-weighted)</td><td>$2,580 (overstated)</td><td>$1,890</td></tr>
+        <tr><td>Simple payback</td><td>7.4 years</td><td>8.0 years</td></tr>
+        <tr><td>25-year NPV (@ 5% discount rate)</td><td>$16,800</td><td>$11,200</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot">Inputs: NREL NSRDB San Jose irradiance; PG&E E-TOU-C 2025 tariff schedule; NREL Q4 2025 residential installed-cost benchmark $3.00/Wp. Numbers are illustrative model outputs, not site-specific quotes. The 9.1 kWp configurator recommendation reflects a tool that hasn't been updated for NEM-3.0 export-rate economics.</div>
+</div>
+
+<p>Two things stand out in that table. The honest system is 1.9 kWp smaller; that alone cuts $5,400 off the sticker price before incentives. And the 25-year NPV gap — $16,800 versus $11,200 — comes almost entirely from the export-rate row; the configurator-optimistic scenario assumes a credit that no longer exists in California for new NEM-3.0 interconnections. The payback numbers look close (7.4 vs. 8.0 years), but the underlying cash flows are very different — the configurator scenario is paying itself back on a fiction.</p>
+<h3>Why this matters more now than it did in 2014</h3>
+<p>When I first built this spreadsheet, the export-rate row was a rounding error — net metering was roughly 1:1 in most jurisdictions and the question was really just about size and shading. That row is now, in post-NEM-3.0 states, the most consequential single input in the whole sheet. A 1-kWp increase in system size past the self-consumption sweet spot might add $3,000 in installed cost and produce annual savings of maybe $50 at the export rate. The return on that marginal kWp is terrible, and no commercial configurator currently shows you that curve, because no commercial configurator is paid to show you a reason to buy less.</p>
+<p>The same logic, scaled up, is why this approach translates cleanly to commercial-rooftop projects — 50–500 kWp, which is a size where the tariff-structure interaction is even more consequential (demand charges, curtailment risk, PPA terms) and where a developer needs the pro forma to hold up in front of a lender, not just in a sales slide. The twenty-row kernel is the same; the rows you add for demand charges, PPA discount rate, and depreciation schedule are extensions of the same honest-arithmetic posture. The configurator problem doesn't disappear at commercial scale — it gets more expensive.</p>
+<p>The spreadsheet is useful if you are: a homeowner with a quote that feels too big, a commercial property owner evaluating a PPA or rooftop-lease offer, a developer who needs a pro forma the lender's engineer won't immediately kick back, or the one person in a real estate partnership who actually read the utility tariff schedule. In each case the work is the same: twenty rows, honest inputs, walk the roof.</p>
+  </article>
+
+  <section class="note-cta">
+    <div>
+      <div class="note-cta-eyebrow">If this is your problem</div>
+      <p class="note-cta-p">I do 4&ndash;12 week fixed-SOW consulting on the kind of work this note describes.</p>
+    </div>
+    <a href="https://jeffpinto.com/engage/" class="btn note-cta-btn">Scope an engagement &rarr;</a>
+  </section>
+
+  <div class="note-links">
+    <span class="lbl">Source / prototype</span>
+      <a href="one-pager.html">One-pager &rarr;</a>
+  </div>
+
+  <div class="foot">
+    Prototype companion to a note staged for jeffpinto.com/notes. Synthetic or
+    public data only &mdash; no secrets, no PII, no client data. Built June 2026.
+  </div>
+
+</div>
+</body>
+</html>
