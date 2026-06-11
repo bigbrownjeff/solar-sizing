@@ -1,0 +1,11 @@
+fixtures run — parsing the bundled doc-sourced samples; zero network calls.
+note: 1 tariff(s) skipped — no energy-rate schedule (demand-only riders etc.)
+note: using tariff [0] of 2 — run --list-tariffs and pick yours with --tariff N; the default is whatever URDB listed first, not 'best'.
+
+  4 kWp · 3512 kWh/yr after a 0.85 roof-walk derate
+  tariff: Example Power & Light (fixture) — Residential TOU E-X (illustrative, NEM-3.0-era shape)
+  tariff-weighted import rate $0.321/kWh · export credit $0.05/kWh
+  net cost $8,400 after ITC · savings $699/yr · simple payback 12.0 yr · 25-yr NPV $1,004
+  the reason to buy less: the marginal kWp pays back in 47.8 yr at your export credit
+
+wrote examples/proforma-fixtures.csv — 20 rows + marginal + export-rate sensitivity, provenance in the header.

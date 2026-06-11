@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Honest-arithmetic solar sizing — illustrative demo, public inputs</title>
+<title>Honest-arithmetic solar sizing — worked example + live NREL/URDB data</title>
 <style>
   :root{
     --ink:#1b1b1b; --muted:#6b6b6b; --line:#e2e2e0; --paper:#fbfbf9;
@@ -53,9 +53,35 @@
   .howit li{margin:3px 0}
   footer{margin-top:30px;border-top:1px solid var(--line);padding-top:14px;font-size:12.5px;color:var(--muted)}
   footer a{color:var(--ink)}
+  /* ---- tabs + live panel ---- */
+  .tabs{display:flex;gap:6px;border-bottom:2px solid var(--ink);margin:0 0 18px}
+  .tab{border:1px solid var(--line);border-bottom:none;background:#f4f4f2;color:var(--muted);
+    padding:9px 16px;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;
+    text-transform:uppercase;border-radius:2px 2px 0 0;cursor:pointer}
+  .tab[aria-selected=true]{background:#fff;color:var(--ink);border-color:var(--ink);font-weight:600}
+  .lp{font-size:13.5px;max-width:74ch}
+  .lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 18px;margin:12px 0 4px}
+  .lf label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .lf input[type=number],.lf input[type=text],.lf input[type=password]{width:100%;padding:8px 10px;font-family:var(--mono);font-size:13px;border:1px solid var(--line);border-radius:2px;background:#fff;color:var(--ink)}
+  .lf input:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+  .lf .hint{font-size:11px;color:var(--muted);margin-top:4px}
+  .lsec{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin:18px 0 0}
+  button.primary{background:var(--ink);color:#fff}
+  button[disabled]{opacity:.5;cursor:not-allowed}
+  .status{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .runrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0}
+  fieldset.tariffs{border:1px solid var(--line);background:#fff;margin:16px 0;padding:8px 14px 10px}
+  fieldset.tariffs legend{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 6px}
+  .trow{display:block;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
+  .trow:last-of-type{border-bottom:none}
+  .trow .meta{color:var(--muted);font-size:12px}
+  .errbox{display:none;border:1px solid var(--optim);border-left:3px solid var(--optim);background:#fff;padding:12px 14px;margin:14px 0;font-size:13px;overflow-wrap:break-word}
+  .errbox code{font-family:var(--mono);font-size:12px}
   @media(max-width:640px){
     .controls{grid-template-columns:1fr}
     .kpis{grid-template-columns:1fr}
+    .lgrid{grid-template-columns:1fr}
+    .tabs{flex-wrap:wrap}
     table{font-size:11.5px}
     th,td{padding:6px 8px}
     .wrap{padding:20px 16px 48px}
@@ -66,15 +92,21 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">Illustrative demo · public inputs, no site data · solar-sizing</div>
+    <div class="eyebrow">Illustrative demo + live federal data · no site data stored · solar-sizing</div>
     <h1>The number the configurator won't show you</h1>
-    <p class="sub">The note's twenty-row sizing arithmetic, live, on its San Jose NEM-3.0 scenario —
-    14,000 kWh/yr household, PG&amp;E E-TOU-C, $3.00/Wp. The configurator column is what a tool built
-    for legacy 1:1 net metering still recommends. The honest column recomputes as you move the two
-    inputs every configurator buries: <strong>the shading derate from an actual roof walk</strong> and
-    <strong>the post-NEM-3.0 export credit</strong>. Not a quote — the arithmetic you'd run before trusting one.</p>
+    <p class="sub">Two tabs. <strong>FIG.1</strong> is the note's twenty-row sizing arithmetic on its
+    San Jose NEM-3.0 scenario — fully offline, an invented household. <strong>Live data</strong> runs
+    the same honest arithmetic on <em>your</em> coordinates: real NREL PVWatts v8 production and a real
+    filed utility tariff from the OpenEI Utility Rate Database, picked by you. Not a quote — the
+    arithmetic you'd run before trusting one.</p>
   </header>
 
+  <div class="tabs" role="tablist" aria-label="Demo mode">
+    <button class="tab" id="tab-fig1" role="tab" aria-selected="true" aria-controls="panel-fig1" type="button">FIG.1 — the arithmetic</button>
+    <button class="tab" id="tab-live" role="tab" aria-selected="false" aria-controls="panel-live" type="button">Live data — your roof</button>
+  </div>
+
+  <div id="panel-fig1" role="tabpanel" aria-labelledby="tab-fig1">
   <div class="controls">
     <div class="ctl">
       <label for="in-derate">Shading derate — roof walk
@@ -143,11 +175,115 @@
       </ul>
     </div>
   </details>
+  </div><!-- /panel-fig1 -->
+
+  <div id="panel-live" role="tabpanel" aria-labelledby="tab-live" hidden>
+    <p class="lp">Type your roof's coordinates (long-press it in any maps app) and the size on your
+    quote. One click fetches <strong>real production</strong> from NREL PVWatts v8 (NSRDB
+    typical-year weather, hourly) and <strong>real filed tariffs</strong> from the OpenEI Utility
+    Rate Database, then runs the note's twenty-row pro forma on them — savings weighted by
+    <em>when</em> the panels actually produce, not by annual %&nbsp;offset. The page makes
+    <strong>zero requests until you click</strong>, and then calls exactly two endpoints:
+    <code>developer.nrel.gov</code> and <code>api.openei.org</code>.</p>
+
+    <div class="lsec">Site &amp; system — sent to the two APIs on click, nowhere else</div>
+    <div class="lgrid">
+      <div class="lf"><label for="lv-lat">Latitude</label>
+        <input type="number" id="lv-lat" step="0.0001" min="-90" max="90" value="37.3382">
+        <div class="hint">prefilled: San Jose, the note's scenario city</div></div>
+      <div class="lf"><label for="lv-lon">Longitude</label>
+        <input type="number" id="lv-lon" step="0.0001" min="-180" max="180" value="-121.8863"></div>
+      <div class="lf"><label for="lv-addr">Street address — optional, tariff lookup only</label>
+        <input type="text" id="lv-addr" autocomplete="off" placeholder="empty = use coordinates">
+        <div class="hint">PVWatts v8 retired its address parameter — production needs the
+        coordinates; an address here only drives the URDB utility lookup</div></div>
+      <div class="lf"><label for="lv-kw">System size — kWp DC</label>
+        <input type="number" id="lv-kw" step="0.1" min="0.5" max="500" value="7.2">
+        <div class="hint">the size on your quote</div></div>
+      <div class="lf"><label for="lv-tilt">Tilt — degrees</label>
+        <input type="number" id="lv-tilt" step="1" min="0" max="90" value="20"></div>
+      <div class="lf"><label for="lv-az">Azimuth — degrees (180 = south)</label>
+        <input type="number" id="lv-az" step="1" min="0" max="359" value="180"></div>
+      <div class="lf"><label for="lv-key">NREL / data.gov API key</label>
+        <input type="password" id="lv-key" autocomplete="off" spellcheck="false" placeholder="empty = DEMO_KEY">
+        <div class="hint">held in page memory only — never stored, never logged, sent only to the
+        two endpoints above. DEMO_KEY is capped by api.data.gov at 30 requests/IP/hour, 50/day
+        (each fetch here = 2 requests); free keys at developer.nrel.gov/signup get 1,000/hour</div></div>
+    </div>
+
+    <div class="lsec">Honest assumptions — local math, never leave the page</div>
+    <div class="lgrid">
+      <div class="ctl"><label for="lv-derate">Shading derate — roof walk
+          <span class="rangeval" id="lv-derate-val">0.85</span></label>
+        <input type="range" id="lv-derate" min="0.80" max="1.00" step="0.01" value="0.85">
+        <div class="ends"><span>0.80 heavy shade</span><span>1.00 clear sky</span></div>
+        <div class="hint" style="font-size:11px;color:var(--muted);margin-top:4px">stacks on
+        PVWatts' 14% system losses, which include only a generic ~3% shading allowance</div></div>
+      <div class="lf"><label for="lv-self">Self-consumption ratio</label>
+        <input type="number" id="lv-self" step="0.05" min="0" max="1" value="0.55">
+        <div class="hint">fraction used in real time; the napkin knob — a lender gets interval data</div></div>
+      <div class="lf"><label for="lv-export">Export credit — $/kWh</label>
+        <input type="number" id="lv-export" step="0.01" min="0" max="1" value="0.05">
+        <div class="hint">URDB rarely encodes post-NEM-3.0 export schedules — set yours</div></div>
+      <div class="lf"><label for="lv-cpw">Installed cost — $/Wp</label>
+        <input type="number" id="lv-cpw" step="0.05" min="0.5" max="10" value="3.00">
+        <div class="hint">default $3.00 — NREL Q4 2025 residential benchmark</div></div>
+    </div>
+
+    <div class="runrow">
+      <button id="lv-fetch" type="button" class="primary">Fetch live data &amp; run the pro forma</button>
+      <span class="status" id="lv-status" role="status">idle — nothing fetched, nothing sent</span>
+    </div>
+
+    <div class="errbox" id="lv-err" aria-live="polite"></div>
+
+    <fieldset class="tariffs" id="lv-tariffs" hidden>
+      <legend>Pick your tariff — what URDB filed for this location</legend>
+      <div id="lv-tariff-list"></div>
+      <div class="hint" style="font-size:11px;color:var(--muted);margin-top:6px" id="lv-tariff-note"></div>
+    </fieldset>
+
+    <div id="lv-results" hidden>
+      <div class="kpis" aria-live="polite">
+        <div class="kpi"><div class="k">Simple payback</div><div class="v good" id="lv-kpi-pb">—</div>
+          <div class="d">net cost ÷ year-1 savings</div></div>
+        <div class="kpi"><div class="k">Net cost after 30% ITC</div><div class="v" id="lv-kpi-net">—</div>
+          <div class="d" id="lv-kpi-net-d">—</div></div>
+        <div class="kpi"><div class="k">Year-1 savings</div><div class="v" id="lv-kpi-sav">—</div>
+          <div class="d" id="lv-kpi-sav-d">—</div></div>
+      </div>
+
+      <div class="marginal" aria-live="polite"><b>The reason to buy less — </b>
+        <span id="lv-marginal">—</span></div>
+
+      <table style="margin-top:16px">
+        <caption id="lv-cap">The twenty-row pro forma — live data</caption>
+        <colgroup><col style="width:6%"><col style="width:34%"><col style="width:30%"><col style="width:30%"></colgroup>
+        <thead><tr><th scope="col">Row</th><th scope="col">Item</th><th scope="col">Value</th><th scope="col">Note</th></tr></thead>
+        <tbody id="lv-rows"></tbody>
+      </table>
+
+      <table style="margin-top:16px">
+        <caption>Export-rate sensitivity — the NEM-3.0 cliff, on your numbers</caption>
+        <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+        <thead><tr><th scope="col">Export credit $/kWh</th><th scope="col">Year-1 savings</th><th scope="col">Simple payback</th></tr></thead>
+        <tbody id="lv-sens"></tbody>
+      </table>
+
+      <div class="runrow">
+        <button id="lv-csv" type="button">Download proforma.csv</button>
+        <span class="status">built in this tab — the file never touches a server</span>
+      </div>
+    </div>
+  </div><!-- /panel-live -->
 
   <footer>
-    Illustrative scenario only — public inputs (NREL NSRDB irradiance, PG&amp;E E-TOU-C tariff,
-    NREL Q4 2025 cost benchmark), an invented household, no site data, no quotes. Nothing you set
-    here leaves the page. Not sizing advice for your roof: the note's first instruction is to walk it.<br>
+    FIG.1 tab: illustrative scenario, public inputs, an invented household — fully offline.
+    Live tab: zero network until you click; then exactly two endpoints — <code>developer.nrel.gov</code>
+    (PVWatts v8) and <code>api.openei.org</code> (URDB) — receive your coordinates/address and API key,
+    which lives in page memory only: never stored, never logged, gone on reload. The CSV is built in
+    this tab. Same pipeline server-side: <code>proforma.py</code> in the repo (this page's live math
+    mirrors it). Not sizing advice for your roof: the note's first instruction is to walk it.<br>
     Built by Jeff Pinto — Loughborough MSc Renewable Energy (Distinction), SkyPower field experience.
     Source note: <a href="https://jeffpinto.com/notes/solar-sizing/">jeffpinto.com/notes/solar-sizing</a> ·
     Advisory and pro formas: <a href="https://jeffpinto.com/engage/">jeffpinto.com/engage</a>
@@ -275,6 +411,414 @@
     readSliders();
   });
   render();
+
+  // ---- tabs ------------------------------------------------------------------------
+  function selectTab(which){
+    var fig1 = which === "fig1";
+    $("tab-fig1").setAttribute("aria-selected", fig1 ? "true" : "false");
+    $("tab-live").setAttribute("aria-selected", fig1 ? "false" : "true");
+    $("panel-fig1").hidden = !fig1;
+    $("panel-live").hidden = fig1;
+  }
+  $("tab-fig1").addEventListener("click", function(){ selectTab("fig1"); });
+  $("tab-live").addEventListener("click", function(){ selectTab("live"); });
+
+  // ================= LIVE TAB (tier 3) — mirror of proforma.py =================
+  // The ONLY network this page can ever touch: developer.nrel.gov/api/pvwatts/v8.json
+  // and api.openei.org/utility_rates — after you click Fetch, with the key you typed
+  // (DEMO_KEY if you didn't). The key lives in JS memory only: no localStorage, no
+  // cookies, no logging, no other endpoint. CORS isn't promised by either API's docs;
+  // if a call fails, the error box hands you the CLI line that runs the same pipeline.
+  // ---- mirror of proforma.py constants ----
+  var L_ITC = 0.30, L_DISCOUNT = 0.05, L_DEGRADATION = 0.005, L_NPV_YEARS = 25;
+  var L_LOSSES = 14, L_ARRAY_TYPE = 1, L_MODULE_TYPE = 0;
+  var WEEKDAY_FRAC = 5 / 7;                 // TMY has no real calendar: blend, don't invent one
+  var WINDOW_LO = 9, WINDOW_HI = 17;        // monthly-fallback production window
+  var DIM = [31,28,31,30,31,30,31,31,30,31,30,31];
+  var MARGINAL_KWP = 1.0;
+  var PVWATTS_URL = "https://developer.nrel.gov/api/pvwatts/v8.json";
+  var URDB_URL = "https://api.openei.org/utility_rates";
+
+  var live = { pv:null, tariffs:[], skipped:0, pick:0, kw:0, tilt:20, az:180,
+               site:"", station:"", when:"", busy:false, last:null };
+
+  function lnum(id, fb){ var v = parseFloat($(id).value); return isFinite(v) ? v : fb; }
+  function setStatus(t){ $("lv-status").textContent = t; }
+
+  // ---- mirror of proforma.py production_matrix ----
+  function productionMatrix(outputs){
+    var P = [], m, h, i;
+    for (m = 0; m < 12; m++){ P.push([]); for (h = 0; h < 24; h++) P[m].push(0); }
+    var ac = outputs.ac;
+    // PVWatts hourly output is station local standard time — the same clock URDB
+    // schedules use, so month×hour buckets line up without a shift
+    if (Array.isArray(ac) && ac.length === 8760){     // hourly Wac -> kWh per bucket
+      i = 0;
+      for (m = 0; m < 12; m++) for (var d = 0; d < DIM[m]; d++) for (h = 0; h < 24; h++){
+        P[m][h] += ac[i] / 1000; i++;
+      }
+      var annual = 0;
+      for (m = 0; m < 12; m++) for (h = 0; h < 24; h++) annual += P[m][h];
+      return { P:P, annual:annual, path:"hourly (PVWatts 8760-hour profile)" };
+    }
+    var mo = outputs.ac_monthly;
+    if (!Array.isArray(mo) || mo.length !== 12)
+      throw new Error("PVWatts outputs carry neither 'ac' (8760) nor 'ac_monthly' (12).");
+    var tot = 0;
+    for (m = 0; m < 12; m++){
+      var share = mo[m] / (WINDOW_HI - WINDOW_LO);
+      for (h = WINDOW_LO; h < WINDOW_HI; h++) P[m][h] = share;
+      tot += mo[m];
+    }
+    return { P:P, annual:tot, path:"monthly fallback (kWh spread across 9:00–17:00)" };
+  }
+
+  // ---- mirror of proforma.py usable_tariffs / rate_matrix / tariff_weighted_rate ----
+  function usableTariffs(items){
+    var keep = items.filter(function(t){
+      return t.energyratestructure && t.energyweekdayschedule && t.energyweekendschedule;
+    });
+    return { keep: keep, skipped: items.length - keep.length };
+  }
+  function rateMatrix(tariff){
+    var rates = [], tiered = false;
+    tariff.energyratestructure.forEach(function(period){
+      if (!period || !period.length){ rates.push(0); return; }
+      rates.push((+period[0].rate || 0) + (+period[0].adj || 0));
+      if (period.length > 1) tiered = true;
+    });
+    var wd = tariff.energyweekdayschedule, we = tariff.energyweekendschedule;
+    if (wd.length !== 12 || we.length !== 12 ||
+        wd.concat(we).some(function(r){ return !Array.isArray(r) || r.length !== 24; }))
+      throw new Error("tariff '" + tariff.name + "' has a malformed 12×24 schedule — pick another.");
+    var R = [];
+    for (var m = 0; m < 12; m++){
+      R.push([]);
+      for (var h = 0; h < 24; h++){
+        var pw = wd[m][h], pe = we[m][h];
+        if (pw >= rates.length || pe >= rates.length)
+          throw new Error("tariff '" + tariff.name + "' schedule points at an undefined rate period — pick another.");
+        R[m].push(WEEKDAY_FRAC * rates[pw] + (1 - WEEKDAY_FRAC) * rates[pe]);
+      }
+    }
+    return { R:R, tiered:tiered };
+  }
+  function twRate(P, R){
+    var num = 0, den = 0;
+    for (var m = 0; m < 12; m++) for (var h = 0; h < 24; h++){ num += P[m][h]*R[m][h]; den += P[m][h]; }
+    if (den <= 0) throw new Error("PVWatts reports zero annual production — check tilt/azimuth/size.");
+    return num / den;
+  }
+  function npv25(savingsY1, netCost){
+    // iterated products, not Math.pow — pow differs by an ulp between JS engines and
+    // CPython's libm; multiplication is IEEE-exact everywhere, so the CLI lands bit-identical
+    var flows = 0, deg = 1, disc = 1;
+    for (var t = 1; t <= L_NPV_YEARS; t++){
+      disc *= 1 + L_DISCOUNT;                  // (1+r)^t
+      flows += savingsY1 * deg / disc;         // deg = (1-d)^(t-1)
+      deg *= 1 - L_DEGRADATION;
+    }
+    return flows - netCost;
+  }
+
+  // ---- mirror of proforma.py build_proforma (pure; reads no DOM) ----
+  function computeLive(kw, derate, selfFrac, exportRate, cpw){
+    var pm = productionMatrix(live.pv.outputs);
+    var rm = rateMatrix(live.tariffs[live.pick]);
+    var rTw = twRate(pm.P, rm.R);
+    var gen = pm.annual * derate;
+    var yieldKwp = gen / kw;
+    var selfKwh = gen * selfFrac, expKwh = gen - selfKwh;
+    var selfVal = selfKwh * rTw, expVal = expKwh * exportRate;
+    var savings = selfVal + expVal;
+    var cost = kw * 1000 * cpw, itc = cost * L_ITC, net = cost - itc;
+    var payback = savings > 0 ? net / savings : Infinity;
+    var margVal = yieldKwp * MARGINAL_KWP * exportRate;
+    var margNet = MARGINAL_KWP * 1000 * cpw * (1 - L_ITC);
+    var margPb = margVal > 0 ? margNet / margVal : Infinity;
+    var ers = [0, 0.05, 0.10, Math.round(rTw * 1e4) / 1e4];
+    var sens = [];
+    ers.sort(function(a,b){ return a - b; }).forEach(function(er){
+      if (sens.some(function(s){ return s.er === er; })) return;
+      var s = selfVal + expKwh * er;
+      sens.push({ er:er, savings:s, payback: s > 0 ? net / s : Infinity, parity: er === Math.round(rTw*1e4)/1e4 });
+    });
+    return { rTw:rTw, tiered:rm.tiered, prodPath:pm.path, gen:gen, yieldKwp:yieldKwp,
+             selfKwh:selfKwh, expKwh:expKwh, selfVal:selfVal, expVal:expVal, savings:savings,
+             cost:cost, itc:itc, net:net, payback:payback, margVal:margVal, margNet:margNet,
+             margPb:margPb, npv:npv25(savings, net), sens:sens,
+             kw:kw, derate:derate, selfFrac:selfFrac, exportRate:exportRate, cpw:cpw };
+  }
+
+  // ---- formatting (display-time rounding only) ----
+  function lusd(v){
+    var n = Math.round(v);
+    return (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US");
+  }
+  function lyrs(v){ return v === Infinity ? "never" : (Math.round(v*10)/10).toFixed(1) + " yr"; }
+  function lrate4(v){ return "$" + v.toFixed(4); }
+
+  function proformaRows(m){            // [row, item, value, unit, note] — CLI CSV shape
+    var t = live.tariffs[live.pick];
+    var tierNote = m.tiered ? "first-tier rates; tiered allowances not modeled" : "first-tier rates";
+    return [
+      ["1","Site", live.site, "lat, lon", ""],
+      ["2","Weather data", live.station, "", "NSRDB typical year, not your weather"],
+      ["3","System size", String(m.kw), "kWp DC", "fixed at fetch time — refetch to change"],
+      ["4","Tilt / azimuth", live.tilt + "° / " + live.az + "°", "degrees", "fixed at fetch time"],
+      ["5","PVWatts system losses", L_LOSSES + "%", "", "v8 default; only ~3% of it is shading"],
+      ["6","Shading derate — roof walk", m.derate.toFixed(2), "x", "walk the roof; satellites miss the 4pm tree"],
+      ["7","Specific yield (after derate)", String(Math.round(m.yieldKwp)), "kWh/kWp/yr", m.prodPath],
+      ["8","Year-1 generation", Math.round(m.gen).toLocaleString("en-US"), "kWh/yr", ""],
+      ["9","Tariff", (t.utility || "?") + " — " + (t.name || "?"), "", "URDB label " + (t.label || "?")],
+      ["10","Tariff-weighted import rate", m.rTw.toFixed(4), "$/kWh", "weighted by WHEN the panels produce; " + tierNote],
+      ["11","Export credit", m.exportRate.toFixed(2), "$/kWh", "set by you — URDB rarely encodes post-NEM-3.0 export schedules"],
+      ["12","Self-consumption ratio", m.selfFrac.toFixed(2), "x", "napkin knob; a lender gets interval data"],
+      ["13","Self-consumed energy", Math.round(m.selfKwh).toLocaleString("en-US"), "kWh/yr", lusd(m.selfVal) + "/yr at the weighted import rate"],
+      ["14","Exported energy", Math.round(m.expKwh).toLocaleString("en-US"), "kWh/yr", lusd(m.expVal) + "/yr at the export credit"],
+      ["15","Annual savings, year 1", lusd(m.savings), "$/yr", ""],
+      ["16","Installed cost", lusd(m.cost), "$", "@ $" + m.cpw.toFixed(2) + "/Wp"],
+      ["17","Federal ITC (30%)", "−" + lusd(m.itc), "$", ""],
+      ["18","Net cost", lusd(m.net), "$", ""],
+      ["19","Simple payback", lyrs(m.payback), "", "no escalation on purpose"],
+      ["20","25-yr NPV @ 5%", lusd(m.npv), "$", "0.5%/yr degradation, flat tariff"]
+    ];
+  }
+
+  function renderLive(m){
+    $("lv-kpi-pb").textContent = lyrs(m.payback);
+    $("lv-kpi-net").textContent = lusd(m.net);
+    $("lv-kpi-net-d").textContent = lusd(m.cost) + " installed − " + lusd(m.itc) + " ITC";
+    $("lv-kpi-sav").textContent = lusd(m.savings);
+    $("lv-kpi-sav-d").textContent = "import rate " + lrate4(m.rTw) + "/kWh, production-weighted";
+
+    var verdict;
+    if (m.margVal <= 0){
+      verdict = "past real-time self-consumption the next kWp is all export. At a $0.00 export " +
+        "credit it earns $0/yr against " + lusd(m.margNet) + " of net cost — it never pays back.";
+    } else if (m.margPb <= 12){
+      verdict = "at your $" + m.exportRate.toFixed(2) + " export credit the next kWp earns about " +
+        lusd(m.margVal) + "/yr against " + lusd(m.margNet) + " net — " + lyrs(m.margPb) +
+        " marginal payback. At rates this close to import parity, oversizing can be rational.";
+    } else {
+      verdict = "past real-time self-consumption the next kWp is mostly exported. At your $" +
+        m.exportRate.toFixed(2) + " export credit it earns about " + lusd(m.margVal) + "/yr against " +
+        lusd(m.margNet) + " of net cost — a " + lyrs(m.margPb) + " marginal payback. No " +
+        "configurator shows you this number, because no configurator is paid to show you a reason to buy less.";
+    }
+    $("lv-marginal").textContent = verdict;
+
+    var tbody = $("lv-rows");
+    tbody.textContent = "";                       // API strings are untrusted: DOM + textContent only
+    proformaRows(m).forEach(function(r){
+      var tr = document.createElement("tr");
+      // 5-tuple [row,item,value,unit,note] -> 4 table cells. The unit column exists
+      // for CSV parity with proforma.py; fold it into the value only where it adds info.
+      var u = r[3], shown;
+      if (u === "" || u === "$" || u === "x" || u === "lat, lon" || u === "degrees") shown = r[2];
+      else if (u === "$/yr") shown = r[2] + "/yr";
+      else shown = r[2] + " " + u;
+      [r[0], r[1], shown, r[4]].forEach(function(cell, i){
+        var td = document.createElement(i === 0 ? "th" : "td");
+        if (i === 0) td.setAttribute("scope", "row");
+        td.textContent = cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    var sb = $("lv-sens");
+    sb.textContent = "";
+    m.sens.forEach(function(s){
+      var tr = document.createElement("tr");
+      [ "$" + s.er.toFixed(s.parity ? 4 : 2) + (s.parity ? " — import parity (your weighted rate)" : ""),
+        lusd(s.savings) + "/yr", lyrs(s.payback) ].forEach(function(c){
+        var td = document.createElement("td"); td.textContent = c; tr.appendChild(td);
+      });
+      sb.appendChild(tr);
+    });
+
+    $("lv-cap").textContent = "The twenty-row pro forma — live data, fetched " + live.when;
+    $("lv-results").hidden = false;
+  }
+
+  function recompute(){
+    if (!live.pv || !live.tariffs.length) return;
+    try {
+      var m = computeLive(live.kw,
+        Math.min(1, Math.max(0.8, lnum("lv-derate", 0.85))),
+        Math.min(1, Math.max(0, lnum("lv-self", 0.55))),
+        Math.max(0, lnum("lv-export", 0.05)),
+        Math.max(0.5, lnum("lv-cpw", 3.00)));
+      live.last = m;
+      renderLive(m);
+    } catch (e){ showErr(e.message); }
+  }
+
+  function renderTariffs(){
+    var list = $("lv-tariff-list");
+    list.textContent = "";
+    live.tariffs.forEach(function(t, i){
+      var lab = document.createElement("label");
+      lab.className = "trow";
+      var r = document.createElement("input");
+      r.type = "radio"; r.name = "lv-tariff"; r.value = String(i); r.checked = (i === live.pick);
+      r.addEventListener("change", function(){ live.pick = i; recompute(); });
+      lab.appendChild(r);
+      lab.appendChild(document.createTextNode(" " + (t.utility || "?") + " — " + (t.name || "?") + " "));
+      var meta = document.createElement("span");
+      meta.className = "meta";
+      var bits = [];
+      if (t.startdate) bits.push("effective " + new Date(t.startdate * 1000).toISOString().slice(0, 10));
+      if (typeof t.fixedchargefirstmeter === "number")
+        bits.push("fixed charge $" + t.fixedchargefirstmeter + " " + (t.fixedchargeunits || ""));
+      meta.textContent = bits.length ? "(" + bits.join(" · ") + ") " : "";
+      lab.appendChild(meta);
+      if (typeof t.uri === "string" && /^https:\/\/(apps\.)?openei\.org\//.test(t.uri)){
+        var a = document.createElement("a");
+        a.href = t.uri; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = "view the filing ↗";
+        lab.appendChild(a);
+      }
+      list.appendChild(lab);
+    });
+    $("lv-tariff-note").textContent =
+      (live.skipped ? live.skipped + " tariff(s) skipped — no energy-rate schedule (demand-only riders etc.). " : "") +
+      "URDB is community-maintained: open the filing and check effective dates before trusting a rate for a signature. " +
+      "Residential sector only here; the CLI takes --sector Commercial.";
+    $("lv-tariffs").hidden = false;
+  }
+
+  function showErr(msg, cli){
+    var box = $("lv-err");
+    box.textContent = "";
+    var p1 = document.createElement("div");
+    p1.textContent = msg;                          // verbatim, untrusted -> textContent
+    box.appendChild(p1);
+    if (cli){
+      var p2 = document.createElement("div");
+      p2.style.marginTop = "8px";
+      p2.appendChild(document.createTextNode(
+        "If that's a network or CORS failure rather than a bad input, the identical pipeline runs server-side: "));
+      var code = document.createElement("code");
+      code.textContent = cli;
+      p2.appendChild(code);
+      p2.appendChild(document.createTextNode(" (proforma.py, in the repo — stdlib only, DEMO_KEY fallback built in)."));
+      box.appendChild(p2);
+    }
+    box.style.display = "block";
+  }
+
+  async function getJson(url, who){
+    var res = await fetch(url);                    // the visitor clicked; this is their request
+    if (!res.ok){
+      var body = "";
+      try { body = (await res.text()).slice(0, 300); } catch (e) {}
+      throw new Error(who + " HTTP " + res.status + (body ? " — " + body : "") +
+        (res.status === 403 || res.status === 401 || res.status === 429
+          ? " (DEMO_KEY is capped at 30 req/IP/hour, 50/day, and some endpoints want a registered key — free at developer.nrel.gov/signup)" : ""));
+    }
+    return res.json();
+  }
+
+  async function fetchLive(){
+    if (live.busy) return;
+    $("lv-err").style.display = "none";
+    var lat = lnum("lv-lat", NaN), lon = lnum("lv-lon", NaN), kw = lnum("lv-kw", NaN);
+    var tilt = Math.min(90, Math.max(0, lnum("lv-tilt", 20)));
+    var az = Math.min(359, Math.max(0, lnum("lv-az", 180)));
+    var addr = $("lv-addr").value.trim();
+    var cliLine = "python3 proforma.py --lat " + lat + " --lon " + lon + " --kw " + kw;
+    if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180){
+      showErr("Production needs coordinates: PVWatts v8 retired the street-address parameter, so latitude and longitude are required (long-press your roof in any maps app). Nothing was sent.");
+      return;
+    }
+    if (!isFinite(kw) || kw <= 0){
+      showErr("System size (kWp) must be a positive number — the size on your quote. Nothing was sent.");
+      return;
+    }
+    var key = $("lv-key").value.trim() || "DEMO_KEY";   // memory only; read per click, kept nowhere
+    live.busy = true;
+    $("lv-fetch").disabled = true;
+    try {
+      setStatus("calling PVWatts v8 (hourly) — 1 of 2…");
+      var pv = await getJson(PVWATTS_URL + "?" + new URLSearchParams({
+        api_key: key, lat: lat, lon: lon, system_capacity: kw, tilt: tilt, azimuth: az,
+        array_type: L_ARRAY_TYPE, module_type: L_MODULE_TYPE, losses: L_LOSSES, timeframe: "hourly"
+      }), "PVWatts");
+      if (pv.errors && pv.errors.length) throw new Error("PVWatts: " + pv.errors.join("; "));
+      if (!pv.outputs) throw new Error("PVWatts response has no outputs object.");
+      var st = pv.station_info || {};
+      setStatus("PVWatts ok — calling URDB" + (addr ? " (by address)" : "") + " — 2 of 2…");
+      var up = { version: "latest", format: "json", api_key: key, sector: "Residential",
+                 detail: "full", approved: "true", limit: "20" };
+      if (addr) up.address = addr; else { up.lat = lat; up.lon = lon; }
+      var urdb = await getJson(URDB_URL + "?" + new URLSearchParams(up), "URDB");
+      var u = usableTariffs(urdb.items || []);
+      if (!u.keep.length)
+        throw new Error("URDB returned no residential tariffs with an energy-rate schedule here. The CLI can try --sector Commercial: " + cliLine + " --sector Commercial");
+      live.pv = pv; live.tariffs = u.keep; live.skipped = u.skipped; live.pick = 0;
+      live.kw = kw; live.tilt = tilt; live.az = az;
+      live.site = lat + ", " + lon + (addr ? " (tariffs by address)" : "");
+      live.station = [st.weather_data_source || "?", st.solar_resource_file || ""].join(" ").trim();
+      live.when = new Date().toISOString().slice(0, 10);
+      renderTariffs();
+      recompute();
+      setStatus("done — production (" + live.station + ") + " + u.keep.length + " tariff(s). Pick yours above the table.");
+    } catch (e){
+      showErr(e.message, cliLine);
+      setStatus("failed — see the message below; nothing else was sent");
+    }
+    live.busy = false;
+    $("lv-fetch").disabled = false;
+  }
+
+  $("lv-fetch").addEventListener("click", fetchLive);
+  $("lv-derate").addEventListener("input", function(){
+    $("lv-derate-val").textContent = lnum("lv-derate", 0.85).toFixed(2);
+    recompute();
+  });
+  ["lv-self", "lv-export", "lv-cpw"].forEach(function(id){
+    $(id).addEventListener("input", recompute);
+  });
+  ["lv-lat", "lv-lon", "lv-kw", "lv-tilt", "lv-az", "lv-addr"].forEach(function(id){
+    $(id).addEventListener("input", function(){
+      if (live.pv) setStatus("site/system inputs changed — fetch again to refresh production");
+    });
+  });
+
+  // ---- CSV download: built in-tab from the last computed pro forma ----
+  function csvCell(v){
+    v = String(v);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+  $("lv-csv").addEventListener("click", function(){
+    if (!live.last){ setStatus("nothing to download yet — fetch first"); return; }
+    var m = live.last, t = live.tariffs[live.pick];
+    var lines = [
+      "# solar-sizing honest pro forma — demo.html live tab (mirrors proforma.py), " + live.when,
+      "# data: NREL PVWatts v8 (" + live.station + ") + OpenEI URDB version=latest, label " + (t.label || "?"),
+      "# not a quote, not sizing advice; the note's first instruction is to walk the roof",
+      "row,item,value,unit,note"
+    ];
+    proformaRows(m).forEach(function(r){
+      lines.push(r.map(csvCell).join(","));      // same 5-column shape as proforma.py's CSV
+    });
+    lines.push(["M1", "Marginal next-kWp payback", lyrs(m.margPb), "",
+      "the next kWp earns ~" + lusd(m.margVal) + "/yr at the export credit against " + lusd(m.margNet) + " net"].map(csvCell).join(","));
+    m.sens.forEach(function(s, i){
+      lines.push(["S" + (i + 1), "Sensitivity — export credit", s.er.toFixed(4), "$/kWh",
+        "savings " + lusd(s.savings) + "/yr, payback " + lyrs(s.payback)].map(csvCell).join(","));
+    });
+    var blob = new Blob([lines.join("\r\n") + "\r\n"], { type: "text/csv" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "proforma.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  });
 })();
 </script>
 </body>

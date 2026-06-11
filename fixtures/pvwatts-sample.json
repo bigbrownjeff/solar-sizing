@@ -1,0 +1,50 @@
+{
+  "_fixture_note": "Doc-sourced fixture: this is the example response published in the NREL PVWatts v8 API documentation (developer.nrel.gov/docs/solar/pvwatts/v8/, retrieved 2026-06-10), reproduced verbatim — including the documentation example's odd pipe-delimited soiling array, which is why June output craters. It is NOT a live API capture and not a real roof. Used by proforma.py --fixtures to test response parsing offline.",
+  "inputs": {
+    "api_key": "DEMO_KEY",
+    "azimuth": "180",
+    "system_capacity": "4",
+    "losses": "14",
+    "array_type": "1",
+    "module_type": "0",
+    "gcr": "0.4",
+    "dc_ac_ratio": "1.2",
+    "inv_eff": "96.0",
+    "radius": "0",
+    "dataset": "nsrdb",
+    "tilt": "10",
+    "lat": "40",
+    "lon": "-105",
+    "soiling": [12.0, 4.0, 45.0, 23.0, 9.0, 99.0, 67.0, 12.54, 54.0, 9.0, 0.0, 7.6],
+    "albedo": "0.3",
+    "bifaciality": "0.7"
+  },
+  "errors": [],
+  "warnings": [],
+  "version": "8.0.0",
+  "ssc_info": {
+    "version": 275,
+    "build": "Linux 64 bit GNU/C++ Oct  4 2022 03:10:07",
+    "module": "pvwattsv8"
+  },
+  "station_info": {
+    "lat": 40.0099983215332,
+    "lon": -105.2600021362305,
+    "elev": 1635.640014648438,
+    "tz": -7.0,
+    "location": "149190",
+    "city": "",
+    "state": "Colorado",
+    "solar_resource_file": "149190.csv",
+    "weather_data_source": "NSRDB PSM V3 GOES tmy-2020 3.2.0"
+  },
+  "outputs": {
+    "ac_monthly": [320.42, 384.86, 321.33, 461.01, 554.60, 40.44, 226.75, 511.23, 256.89, 399.09, 360.67, 294.06],
+    "poa_monthly": [96.25, 116.13, 98.52, 144.42, 183.88, 15.66, 77.03, 173.15, 84.66, 127.52, 111.21, 88.33],
+    "solrad_monthly": [3.10, 4.15, 3.18, 4.81, 5.93, 0.52, 2.48, 5.59, 2.82, 4.11, 3.71, 2.85],
+    "dc_monthly": [336.94, 403.75, 339.05, 484.22, 582.03, 48.66, 242.12, 536.89, 272.17, 419.18, 378.82, 309.31],
+    "ac_annual": 4131.35,
+    "solrad_annual": 3.60,
+    "capacity_factor": 11.79
+  }
+}

@@ -18,7 +18,7 @@
   <section class="note-hero">
     <h1 class="h1 note-title">First-principles residential solar sizing.</h1>
     <p class="deck note-deck">A twenty-row spreadsheet beats every online configurator when the configurator has a structural incentive not to be honest. Here&#x27;s the honest arithmetic, with a payback table to prove it.</p>
-    <div class="eyebrow note-hero-meta"><span class="sec">DOING</span> · UPDATED JUN 8, 2026 · 8 MIN READ · 1,050 WORDS</div>
+    <div class="eyebrow note-hero-meta"><span class="sec">DOING</span> · UPDATED JUN 10, 2026 · 9 MIN READ · 1,350 WORDS</div>
   </section>
 
   <article class="note-body case-prose">
@@ -62,11 +62,14 @@
   <div class="foot">Inputs: NREL NSRDB San Jose irradiance; PG&E E-TOU-C 2025 tariff schedule; NREL Q4 2025 residential installed-cost benchmark $3.00/Wp. Numbers are illustrative model outputs, not site-specific quotes. The 9.1 kWp configurator recommendation reflects a tool that hasn't been updated for NEM-3.0 export-rate economics.</div>
 </div>
 
-<p>Two things stand out in that table. The honest system is 1.9 kWp smaller; that alone cuts $5,400 off the sticker price before incentives. And the 25-year NPV gap — $16,800 versus $11,200 — comes almost entirely from the export-rate row; the configurator-optimistic scenario assumes a credit that no longer exists in California for new NEM-3.0 interconnections. The payback numbers look close (7.4 vs. 8.0 years), but the underlying cash flows are very different — the configurator scenario is paying itself back on a fiction.</p>
+<p>Two things stand out in that table. The honest system is 1.9 kWp smaller; that alone cuts $5,700 off the sticker price before incentives. And the 25-year NPV gap — $16,800 versus $11,200 — comes almost entirely from the export-rate row; the configurator-optimistic scenario assumes a credit that no longer exists in California for new NEM-3.0 interconnections. The payback numbers look close (7.4 vs. 8.0 years), but the underlying cash flows are very different — the configurator scenario is paying itself back on a fiction.</p>
 <h3>Why this matters more now than it did in 2014</h3>
 <p>When I first built this spreadsheet, the export-rate row was a rounding error — net metering was roughly 1:1 in most jurisdictions and the question was really just about size and shading. That row is now, in post-NEM-3.0 states, the most consequential single input in the whole sheet. A 1-kWp increase in system size past the self-consumption sweet spot might add $3,000 in installed cost and produce annual savings of maybe $50 at the export rate. The return on that marginal kWp is terrible, and no commercial configurator currently shows you that curve, because no commercial configurator is paid to show you a reason to buy less.</p>
 <p>The same logic, scaled up, is why this approach translates cleanly to commercial-rooftop projects — 50–500 kWp, which is a size where the tariff-structure interaction is even more consequential (demand charges, curtailment risk, PPA terms) and where a developer needs the pro forma to hold up in front of a lender, not just in a sales slide. The twenty-row kernel is the same; the rows you add for demand charges, PPA discount rate, and depreciation schedule are extensions of the same honest-arithmetic posture. The configurator problem doesn't disappear at commercial scale — it gets more expensive.</p>
 <p>The spreadsheet is useful if you are: a homeowner with a quote that feels too big, a commercial property owner evaluating a PPA or rooftop-lease offer, a developer who needs a pro forma the lender's engineer won't immediately kick back, or the one person in a real estate partnership who actually read the utility tariff schedule. In each case the work is the same: twenty rows, honest inputs, walk the roof.</p>
+<h3>The twenty rows, against live federal data</h3>
+<p>If the configurator's optimism is structural, the counter has to be structural too — arithmetic you can rerun against data nobody's sales team curates. So the prototype beside this note now does exactly that. Type your roof's coordinates and the size on the quote; it pulls a typical year of hourly production from NREL's PVWatts model and the tariffs your utility actually filed from OpenEI's Utility Rate Database, lets you pick the one that matches your bill, and runs the twenty rows on those numbers. Savings get weighted by <em>when</em> the panels produce, not by annual offset; the export credit stays a knob you set, because no public dataset honestly knows your post-NEM-3.0 schedule and anyone claiming otherwise is selling something; and the marginal-next-kWp row — what the last panel on the quote actually earns — comes out with a sensitivity table attached. The whole thing lands as a CSV with the data provenance in the header, from the browser tab or a one-line CLI in the repo.</p>
+<p>Two honest bounds, stated in the tool as well. PVWatts simulates a typical weather year, not your weather — a lender wants the P50/P90 conversation, and this is where it starts, not where it ends. And the rate database is community-maintained; the tool links each tariff's filing and tells you to check the effective dates before trusting it for a signature. The point was never that twenty rows know your roof. The point is that the quote now has to survive arithmetic it didn't write.</p>
   </article>
 
   <section class="note-cta">
@@ -79,12 +82,14 @@
 
   <div class="note-links">
     <span class="lbl">Source / prototype</span>
+      <a href="demo.html">Live demo &rarr;</a>
       <a href="one-pager.html">One-pager &rarr;</a>
   </div>
 
   <div class="foot">
-    Prototype companion to a note staged for jeffpinto.com/notes. Synthetic or
-    public data only &mdash; no secrets, no PII, no client data. Built June 2026.
+    Prototype companion to a note staged for jeffpinto.com/notes. Committed data is synthetic or
+    public only &mdash; no secrets, no PII, no client data; the demo&rsquo;s live tab calls NREL
+    PVWatts v8 and OpenEI URDB with inputs you type, when you click, and nothing else. Built June 2026.
   </div>
 
 </div>
