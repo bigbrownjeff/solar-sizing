@@ -195,7 +195,7 @@
             <li>Import rate defaults to the LIPA tariff-weighted rate from a real proforma.py run; set yours for your utility.</li>
             <li>Export credit defaults to ~$0.19, the PSEG-LI Rate 194 off-peak rate where most solar generation banks under NY time-of-day net metering. (This is NOT California NEM-3.0's ~$0.05 &mdash; the export rule is jurisdiction-specific; set yours.)</li>
             <li>Battery (default 0): shifts up to kWh&times;365&times;0.9 of yearly export from the export credit to the higher import-offset value; costs $1,000/kWh with no ITC. EV (default 0): adds the annual load, 60% met from daytime solar, raising self-consumption. Both mirror proforma.py.</li>
-            <li><strong>Time-of-use (optional, 8760 tier only):</strong> toggle it on and savings switch to <strong>real hourly netting</strong> &mdash; generation vs a typical residential load shape, valued at each hour's TOU rate (default PSEG-LI Rate 194: on-peak $0.36 weekday 3&ndash;7pm, overnight $0.13, off-peak otherwise), with a daily battery peak-shave that only discharges where the rate beats the export credit. It reports your <em>real</em> self-consumption (often ~45&ndash;50%, below the flat 55% guess) and the honest battery value (small under NY's high export credit, large under California's ~$0.05). The load shape is a typical-home proxy; your true numbers need your interval data, which only your meter has.</li>
+            <li><strong>Time-of-use (optional, 8760 tier only):</strong> toggle it on and savings switch to <strong>real hourly netting</strong> &mdash; generation vs a typical residential load shape, valued at each hour's TOU rate (default PSEG-LI Rate 194: on-peak $0.36 weekday 3&ndash;7pm, overnight $0.13, off-peak otherwise), with a daily battery peak-shave that only discharges where the rate beats the export credit. It reports your <em>real</em> self-consumption (often ~45&ndash;50%, below the flat 55% guess) and the honest battery value (small under NY's high export credit, large under California's ~$0.05). The load shape is a typical-home proxy; your true numbers need your interval data, which only your meter has. <code>proforma.py --tou</code> runs the identical model on the CLI.</li>
             <li>Federal ITC defaults to 0 &mdash; Section 25D expired 12/31/2025 for owned 2026 installs (third-party leases keep 48E). NY's 25%/$5k state credit is pre-filled. Self-consumption, $/Wp, 5% discount, 25 yr, 0.5%/yr degradation match proforma.py.</li>
           </ul>
         </div>
@@ -706,7 +706,7 @@ function recompute(){
     +' --self-consumption '+k.self.toFixed(2)+' --cost-per-watt '+k.cpw.toFixed(2)+' --itc '+k.itc.toFixed(2)+' --state-credit '+k.sc.toFixed(0);
   if(k.battery>0) cli+=' \\\n  --battery-kwh '+k.battery;
   if(k.ev>0)      cli+=' --ev-kwh '+k.ev+' --ev-solar-fraction '+EV_SOLAR_FRACTION;
-  if(k.tou)       cli+='\n  # Time-of-use savings are modeled in-browser (hourly Open-Meteo netting vs a typical load shape); this command gives the conservative flat-rate baseline.';
+  if(k.tou)       cli+=' \\\n  --tou --import-rate '+k.imp.toFixed(3)+' --annual-load '+Math.round(k.load)+' --peak-rate '+k.peak.toFixed(2)+' --overnight-rate '+k.night.toFixed(2);
   $('cli').textContent=cli;
 }
 
