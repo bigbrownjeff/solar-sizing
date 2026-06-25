@@ -17,13 +17,17 @@ Pipeline (same as demo.html's "Live" tab, server-side):
   4. The source note's honest arithmetic on those numbers: production-weighted
      tariff rate, roof-walk shading derate, NEM-3.0-style export credit,
      self-consumption split, ITC, simple payback, 25-yr NPV, and the
-     marginal-next-kWp number no configurator shows you.
+     marginal-next-kWp number no configurator shows you. The 2026 model adds two
+     optional separate worksheets — a battery (--battery-kwh: arbitrages the
+     export->import spread) and an EV load (--ev-kwh: daytime charging lifts
+     self-consumption) — plus a battery-vs-export-rate sensitivity.
 
 Split arrays: --kw, --tilt, --azimuth accept comma lists, one entry per roof
 plane (e.g. --kw 5,5 --tilt 30,30 --azimuth 123,303 for a real, off-cardinal
 E/W roof). Production matrices sum; the pro forma runs on the combined array.
 
-Outputs proforma.csv (20 rows + provenance + cross-check + sensitivity) and a
+Outputs proforma.csv (20 rows + provenance + cross-check + sensitivity, plus an
+EV and a battery worksheet block when --ev-kwh / --battery-kwh are set) and a
 terminal summary.
 
 API key (PVWatts only; PVGIS and NASA need none): --api-key flag, else
@@ -72,6 +76,12 @@ SOLAR_WINDOW = (9, 17)     # monthly fallback only: spread each month's kWh even
 DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 MARGINAL_KWP = 1.0         # the "next kWp" of the note's reason-to-buy-less row
 CROSSCHECK_FLAG = 0.08     # flag if two production sources disagree by more
+
+# ---- 2026 model additions (the source note's three new lines) ------------------
+# Battery: a battery shifts exported solar into evening self-consumption,
+# arbitraging the export->import spread. Round-trip efficiency and ~one cycle/day.
+BATTERY_RTE = 0.9          # AC round-trip efficiency
+BATTERY_CYCLES = 365       # one cycle per day (optimistic upper bound on shifting)
 
 PVWATTS_URL = "https://developer.nrel.gov/api/pvwatts/v8.json"
 PVGIS_URL = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc"
@@ -297,23 +307,71 @@ def build_proforma(args, R, tiered, kw_total, prod_path, P, annual_raw) -> dict:
     self_val = self_kwh * r_tw
     export_val = export_kwh * args.export_rate
     savings = self_val + export_val
+
+    # --- 2026 line 2: EV charging as a load -------------------------------------
+    # An EV raises household load; the share charged in daylight soaks up solar
+    # that would otherwise be exported, lifting it from export_rate to import_rate.
+    # We model only the solar-offset benefit (the EV's off-solar kWh is a load the
+    # household pays for either way and is out of this pro forma's scope).
+    ev_self_kwh = 0.0
+    ev_self_val = 0.0
+    if args.ev_kwh > 0:
+        ev_self_kwh = min(export_kwh, args.ev_kwh * args.ev_solar_fraction)
+        ev_self_val = ev_self_kwh * (r_tw - args.export_rate)
+        self_kwh += ev_self_kwh
+        self_val += ev_self_kwh * r_tw
+        export_kwh -= ev_self_kwh
+        export_val -= ev_self_kwh * args.export_rate
+        savings += ev_self_val
+
+    # --- 2026 line 1: battery sizing (separate worksheet) -----------------------
+    # A battery shifts the still-exported solar into evening self-consumption,
+    # arbitraging the export->import spread. shifted kWh leave export_rate and
+    # arrive at import_rate, minus round-trip losses. Modeled on the export pool
+    # remaining AFTER any EV daytime charging (the EV already took its share).
+    batt_shift_kwh = 0.0
+    batt_benefit = 0.0
+    batt_cost = 0.0
+    batt_payback = float("inf")
+    if args.battery_kwh > 0:
+        usable_shift = args.battery_kwh * BATTERY_CYCLES * BATTERY_RTE
+        batt_shift_kwh = min(export_kwh, usable_shift)
+        batt_benefit = batt_shift_kwh * (r_tw - args.export_rate)
+        batt_cost = args.battery_kwh * args.battery_cost
+        # NO federal ITC on the battery by default in 2026 (Section 25D ended
+        # 12/31/2025); a third-party lease keeps the Section 48E business ITC.
+        batt_payback = batt_cost / batt_benefit if batt_benefit > 0 else float("inf")
+        savings += batt_benefit
+
     cost = kw_total * 1000.0 * args.cost_per_watt
     itc = cost * args.itc
-    net = cost - itc - args.state_credit
+    net = cost - itc - args.state_credit + batt_cost
     payback = net / savings if savings > 0 else float("inf")
     marg_gen = yield_kwp * MARGINAL_KWP
     marg_val = marg_gen * args.export_rate
     marg_net = MARGINAL_KWP * 1000.0 * args.cost_per_watt * (1 - args.itc)
     marg_payback = marg_net / marg_val if marg_val > 0 else float("inf")
     parity_er = math.floor(r_tw * 1e4 + 0.5) / 1e4
+    # export-rate sensitivity. The 2026 point: a battery's value RISES as the
+    # export rate falls, because the spread it arbitrages widens. We show the
+    # battery-augmented savings at each export rate alongside the solar-only line.
+    base_self_val = self_val  # already includes any EV lift; battery handled per-er
     sens = []
     for er in sorted({0.0, 0.05, 0.10, parity_er}):
-        s = self_val + export_kwh * er
-        sens.append((er, s, net / s if s > 0 else float("inf")))
+        s = base_self_val + export_kwh * er
+        s_batt = s
+        if args.battery_kwh > 0:
+            shift = min(export_kwh, args.battery_kwh * BATTERY_CYCLES * BATTERY_RTE)
+            s_batt = s + shift * (r_tw - er)
+        sens.append((er, s, s_batt, net / s_batt if s_batt > 0 else float("inf")))
     return {"r_tw": r_tw, "tiered": tiered, "gen": gen, "yield_kwp": yield_kwp,
             "self_kwh": self_kwh, "export_kwh": export_kwh, "self_val": self_val,
             "export_val": export_val, "savings": savings, "cost": cost, "itc": itc,
             "state_credit": args.state_credit,
+            "ev_kwh": args.ev_kwh, "ev_self_kwh": ev_self_kwh, "ev_self_val": ev_self_val,
+            "batt_kwh": args.battery_kwh, "batt_cost": batt_cost,
+            "batt_shift_kwh": batt_shift_kwh, "batt_benefit": batt_benefit,
+            "batt_payback": batt_payback,
             "net": net, "payback": payback, "marg_val": marg_val,
             "marg_payback": marg_payback, "npv": npv(savings, net), "sens": sens,
             "prod_path": prod_path}
@@ -364,11 +422,35 @@ def write_csv(path, args, m, tariff_name, kw_total, planes_desc, site, source_li
         w.writerow(["M1", "Marginal next-kWp payback", yrs(m["marg_payback"]), "yr",
                     f"the next kWp earns ~${m['marg_val']:.0f}/yr at the export credit — "
                     "the number no configurator shows you"])
+        # 2026 line 2 — EV charging as a load (only when modeled)
+        if m["ev_kwh"] > 0:
+            w.writerow(["E1", "EV annual load", f"{m['ev_kwh']:.0f}", "kWh/yr",
+                        f"{args.ev_solar_fraction:g} charged from daytime solar; can justify a larger array"])
+            w.writerow(["E2", "EV self-consumption lift", f"{m['ev_self_kwh']:.0f}", "kWh/yr",
+                        f"solar moved export->self by daytime EV charging, worth +${m['ev_self_val']:.0f}/yr "
+                        "(import minus export rate)"])
+        # 2026 line 1 — battery worksheet (separate; only when modeled)
+        if m["batt_kwh"] > 0:
+            w.writerow(["B1", "Battery capacity", f"{m['batt_kwh']:g}", "kWh", "usable; separate worksheet"])
+            w.writerow(["B2", "Battery installed cost", f"{m['batt_cost']:.0f}", "$",
+                        f"@ ${args.battery_cost:.0f}/kWh; no federal ITC by default in 2026 (48E for leases)"])
+            w.writerow(["B3", "Solar shifted to evening", f"{m['batt_shift_kwh']:.0f}", "kWh/yr",
+                        f"the same kWh row 14 exports, re-valued: min(export, {m['batt_kwh']:g}kWh x 365 "
+                        f"x {BATTERY_RTE:g} round-trip), ~1 cycle/day"])
+            w.writerow(["B4", "Battery benefit, year 1", f"{m['batt_benefit']:.0f}", "$/yr",
+                        "shifted kWh x (import - export rate) ON TOP of row 14's export value — "
+                        "net, those kWh now earn the full import rate; the export->import arbitrage"])
+            w.writerow(["B5", "Battery simple payback (marginal)", yrs(m["batt_payback"]), "yr",
+                        "battery cost / battery benefit; pencils only when export << import"])
         for tag, label, annual in cross:
             w.writerow([tag, "Cross-check", f"{annual:.0f}", "kWh/yr or kWh/m2/yr", label])
-        for i, (er, s, pb) in enumerate(m["sens"], 1):
-            w.writerow([f"S{i}", "Sensitivity — export credit", f"{er:.4f}", "$/kWh",
-                        f"savings ${s:.0f}/yr, payback {yrs(pb)} yr"])
+        for i, (er, s, s_batt, pb) in enumerate(m["sens"], 1):
+            if m["batt_kwh"] > 0:
+                note = (f"solar-only ${s:.0f}/yr; with {m['batt_kwh']:g}kWh battery ${s_batt:.0f}/yr, "
+                        f"payback {yrs(pb)} yr — battery's value rises as export rate falls")
+            else:
+                note = f"savings ${s:.0f}/yr, payback {yrs(pb)} yr"
+            w.writerow([f"S{i}", "Sensitivity — export credit", f"{er:.4f}", "$/kWh", note])
 
 
 def print_summary(args, m, tariff_name, kw_total, cross) -> None:
@@ -376,12 +458,31 @@ def print_summary(args, m, tariff_name, kw_total, cross) -> None:
           f"· {m['prod_path']}")
     print(f"  tariff: {tariff_name}")
     print(f"  tariff-weighted import rate ${m['r_tw']:.3f}/kWh · export credit ${args.export_rate:g}/kWh")
+    if m["ev_kwh"] > 0:
+        print(f"  EV load {m['ev_kwh']:.0f} kWh/yr · {args.ev_solar_fraction:g} from daytime solar "
+              f"lifts {m['ev_self_kwh']:.0f} kWh export->self, +${m['ev_self_val']:,.0f}/yr "
+              "(can justify a larger array)")
     print(f"  net cost ${m['net']:,.0f} after credits · savings ${m['savings']:,.0f}/yr"
           f" · simple payback {yrs(m['payback'])} yr · 25-yr NPV ${m['npv']:,.0f}")
     if cross:
         print("  cross-check: " + "; ".join(f"{lab} {a:,.0f}" for _, lab, a in cross))
     print(f"  the reason to buy less: the marginal kWp pays back in {yrs(m['marg_payback'])} yr "
-          f"at your export credit\n")
+          f"at your export credit")
+    if m["batt_kwh"] > 0:
+        print(f"\n  battery worksheet — {m['batt_kwh']:g} kWh @ ${args.battery_cost:.0f}/kWh = "
+              f"${m['batt_cost']:,.0f}, no ITC (2026):")
+        print(f"    shifts {m['batt_shift_kwh']:.0f} kWh/yr export->self at the "
+              f"${m['r_tw']-args.export_rate:.3f}/kWh spread = ${m['batt_benefit']:,.0f}/yr "
+              f"· marginal payback {yrs(m['batt_payback'])} yr")
+        if m["batt_payback"] == float("inf") or m["batt_payback"] > NPV_YEARS:
+            print("    verdict: does NOT pencil at this export rate — the export->import spread is "
+                  "too thin to beat the battery's cost over its life.")
+        else:
+            print("    verdict: pencils — and pencils harder the LOWER your export rate goes "
+                  "(the spread it arbitrages widens).")
+    elif args.battery_cost != 1000.0:
+        warn("--battery-cost set but --battery-kwh is 0 — no battery modeled.")
+    print()
 
 
 # ---- CLI ------------------------------------------------------------------------
@@ -419,6 +520,20 @@ def parse_args(argv=None):
                         "jurisdiction-specific knob -- e.g. NY PSEG-LI time-of-day net metering banks most solar "
                         "near 0.19, ~4x higher; set yours)")
     p.add_argument("--cost-per-watt", type=float, default=3.00)
+    # --- 2026 model additions --------------------------------------------------
+    p.add_argument("--battery-kwh", type=float, default=0.0, metavar="KWH",
+                   help="usable battery capacity kWh (default 0 = none). A separate worksheet: the "
+                        "battery shifts exported solar into evening self-consumption, arbitraging the "
+                        "export->import spread. Pencils mainly when --export-rate << import rate")
+    p.add_argument("--battery-cost", type=float, default=1000.0, metavar="DOLLARS_PER_KWH",
+                   help="installed battery cost $/kWh (default 1000). No federal ITC by default in 2026 "
+                        "(Section 25D ended 12/31/2025); third-party leases keep the Section 48E ITC")
+    p.add_argument("--ev-kwh", type=float, default=0.0, metavar="KWH",
+                   help="annual EV charging load kWh/yr (default 0; typical 3000-6000). Raises household "
+                        "load; the daytime share soaks up solar that would otherwise be exported")
+    p.add_argument("--ev-solar-fraction", type=float, default=0.6, metavar="FRAC",
+                   help="share of EV charging done from daytime solar (default 0.6). The solar-offset "
+                        "part lifts self-consumption from the export rate to the import rate")
     p.add_argument("--itc", type=float, default=0.0,
                    help="federal ITC fraction (default 0.0: Section 25D ended 12/31/2025 for owned 2026 "
                         "installs; was 0.30 through 2025; third-party leases keep Section 48E at 0.30 to 2027)")
@@ -437,9 +552,22 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
+def validate_2026_flags(args) -> None:
+    """Battery/EV input guards — checked on both the live and --fixtures paths."""
+    if args.battery_kwh < 0:
+        fail("--battery-kwh must be >= 0.")
+    if args.battery_cost < 0:
+        fail("--battery-cost must be >= 0.")
+    if args.ev_kwh < 0:
+        fail("--ev-kwh must be >= 0.")
+    if not 0 <= args.ev_solar_fraction <= 1:
+        fail("--ev-solar-fraction must be in [0, 1].")
+
+
 def main(argv=None) -> int:
     args = parse_args(argv)
     key = args.api_key or os.environ.get("NREL_API_KEY") or "DEMO_KEY"
+    validate_2026_flags(args)
 
     if args.fixtures:
         return run_fixtures(args)
