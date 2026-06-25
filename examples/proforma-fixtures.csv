@@ -1,4 +1,4 @@
-"# solar-sizing honest pro forma — proforma.py, 2026-06-24 23:58Z"
+"# solar-sizing honest pro forma — proforma.py, 2026-06-25 01:15Z"
 # data: DOC-SOURCED FIXTURES — no live API called
 "# not a quote, not sizing advice; the note's first instruction is to walk the roof"
 row,item,value,unit,note
@@ -18,12 +18,13 @@ row,item,value,unit,note
 14,Exported energy,1580,kWh/yr,$79/yr at the export credit
 15,"Annual savings, year 1",699,$/yr,
 16,Installed cost,12000,$,@ $3.00/Wp
-17,Federal ITC (30%),-3600,$,
-18,Net cost,8400,$,
-19,Simple payback,12.0,yr,net cost / year-1 savings; no escalation on purpose
-20,25-yr NPV @ 5%,1004,$,"0.5%/yr degradation, flat tariff"
-M1,Marginal next-kWp payback,47.8,yr,the next kWp earns ~$44/yr at the export credit — the number no configurator shows you
-S1,Sensitivity — export credit,0.0000,$/kWh,"savings $620/yr, payback 13.5 yr"
-S2,Sensitivity — export credit,0.0500,$/kWh,"savings $699/yr, payback 12.0 yr"
-S3,Sensitivity — export credit,0.1000,$/kWh,"savings $778/yr, payback 10.8 yr"
-S4,Sensitivity — export credit,0.3213,$/kWh,"savings $1128/yr, payback 7.4 yr"
+17,Federal ITC (0%),-0,$,Section 25D ended 12/31/2025 for owned installs; default 0 (leases keep 48E to 2027)
+18,State credit,-0,$,"e.g. NY 25% capped $5,000; set with --state-credit"
+19,Net cost,12000,$,
+20,Simple payback,17.2,yr,net cost / year-1 savings; no escalation on purpose
+21,25-yr NPV @ 5%,-2596,$,"0.5%/yr degradation, flat tariff"
+M1,Marginal next-kWp payback,68.3,yr,the next kWp earns ~$44/yr at the export credit — the number no configurator shows you
+S1,Sensitivity — export credit,0.0000,$/kWh,"savings $620/yr, payback 19.3 yr"
+S2,Sensitivity — export credit,0.0500,$/kWh,"savings $699/yr, payback 17.2 yr"
+S3,Sensitivity — export credit,0.1000,$/kWh,"savings $778/yr, payback 15.4 yr"
+S4,Sensitivity — export credit,0.3213,$/kWh,"savings $1128/yr, payback 10.6 yr"

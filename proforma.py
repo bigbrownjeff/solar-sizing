@@ -52,7 +52,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # ---- model constants (mirrored by demo.html's live tab) ------------------------
-ITC = 0.30                 # federal investment tax credit
+# Federal residential ITC (Section 25D) was 30% through 2025, but the One Big
+# Beautiful Bill Act (2025-07-04) ended it for OWNED installs placed in service
+# after 2025-12-31. So --itc defaults to 0.0 (2026 owned reality); third-party
+# leases keep the Section 48E business ITC (30%) through 2027, and state credits
+# (e.g. NY's 25% capped at $5,000) go in --state-credit.
 DISCOUNT = 0.05            # NPV discount rate (the note's FIG.1 uses 5%)
 DEGRADATION = 0.005        # panel output degradation per year (industry 0.5%)
 NPV_YEARS = 25
@@ -294,12 +298,12 @@ def build_proforma(args, R, tiered, kw_total, prod_path, P, annual_raw) -> dict:
     export_val = export_kwh * args.export_rate
     savings = self_val + export_val
     cost = kw_total * 1000.0 * args.cost_per_watt
-    itc = cost * ITC
-    net = cost - itc
+    itc = cost * args.itc
+    net = cost - itc - args.state_credit
     payback = net / savings if savings > 0 else float("inf")
     marg_gen = yield_kwp * MARGINAL_KWP
     marg_val = marg_gen * args.export_rate
-    marg_net = MARGINAL_KWP * 1000.0 * args.cost_per_watt * (1 - ITC)
+    marg_net = MARGINAL_KWP * 1000.0 * args.cost_per_watt * (1 - args.itc)
     marg_payback = marg_net / marg_val if marg_val > 0 else float("inf")
     parity_er = math.floor(r_tw * 1e4 + 0.5) / 1e4
     sens = []
@@ -309,6 +313,7 @@ def build_proforma(args, R, tiered, kw_total, prod_path, P, annual_raw) -> dict:
     return {"r_tw": r_tw, "tiered": tiered, "gen": gen, "yield_kwp": yield_kwp,
             "self_kwh": self_kwh, "export_kwh": export_kwh, "self_val": self_val,
             "export_val": export_val, "savings": savings, "cost": cost, "itc": itc,
+            "state_credit": args.state_credit,
             "net": net, "payback": payback, "marg_val": marg_val,
             "marg_payback": marg_payback, "npv": npv(savings, net), "sens": sens,
             "prod_path": prod_path}
@@ -337,10 +342,12 @@ def proforma_rows(args, m, tariff_name, kw_total, planes_desc, site) -> list[lis
         [14, "Exported energy", f"{m['export_kwh']:.0f}", "kWh/yr", f"${m['export_val']:.0f}/yr at the export credit"],
         [15, "Annual savings, year 1", f"{m['savings']:.0f}", "$/yr", ""],
         [16, "Installed cost", f"{m['cost']:.0f}", "$", f"@ ${args.cost_per_watt:.2f}/Wp"],
-        [17, "Federal ITC (30%)", f"-{m['itc']:.0f}", "$", ""],
-        [18, "Net cost", f"{m['net']:.0f}", "$", ""],
-        [19, "Simple payback", yrs(m["payback"]), "yr", "net cost / year-1 savings; no escalation on purpose"],
-        [20, f"25-yr NPV @ {DISCOUNT:.0%}", f"{m['npv']:.0f}", "$", f"{DEGRADATION:.1%}/yr degradation, flat tariff"],
+        [17, f"Federal ITC ({args.itc:.0%})", f"-{m['itc']:.0f}", "$",
+         "Section 25D ended 12/31/2025 for owned installs; default 0 (leases keep 48E to 2027)"],
+        [18, "State credit", f"-{m['state_credit']:.0f}", "$", "e.g. NY 25% capped $5,000; set with --state-credit"],
+        [19, "Net cost", f"{m['net']:.0f}", "$", ""],
+        [20, "Simple payback", yrs(m["payback"]), "yr", "net cost / year-1 savings; no escalation on purpose"],
+        [21, f"25-yr NPV @ {DISCOUNT:.0%}", f"{m['npv']:.0f}", "$", f"{DEGRADATION:.1%}/yr degradation, flat tariff"],
     ]
 
 
@@ -369,7 +376,7 @@ def print_summary(args, m, tariff_name, kw_total, cross) -> None:
           f"· {m['prod_path']}")
     print(f"  tariff: {tariff_name}")
     print(f"  tariff-weighted import rate ${m['r_tw']:.3f}/kWh · export credit ${args.export_rate:g}/kWh")
-    print(f"  net cost ${m['net']:,.0f} after ITC · savings ${m['savings']:,.0f}/yr"
+    print(f"  net cost ${m['net']:,.0f} after credits · savings ${m['savings']:,.0f}/yr"
           f" · simple payback {yrs(m['payback'])} yr · 25-yr NPV ${m['npv']:,.0f}")
     if cross:
         print("  cross-check: " + "; ".join(f"{lab} {a:,.0f}" for _, lab, a in cross))
@@ -407,8 +414,16 @@ def parse_args(argv=None):
                    help="roof-walk shading derate (default 0.85; 0.85 suits a typical shaded roof, an "
                         "unshaded array wants ~0.95-1.0 — validated against real systems in validation/)")
     p.add_argument("--self-consumption", type=float, default=0.55)
-    p.add_argument("--export-rate", type=float, default=0.05)
+    p.add_argument("--export-rate", type=float, default=0.05,
+                   help="$/kWh for exported energy (default 0.05 = California NEM-3.0 worst case; the most "
+                        "jurisdiction-specific knob -- e.g. NY PSEG-LI time-of-day net metering banks most solar "
+                        "near 0.19, ~4x higher; set yours)")
     p.add_argument("--cost-per-watt", type=float, default=3.00)
+    p.add_argument("--itc", type=float, default=0.0,
+                   help="federal ITC fraction (default 0.0: Section 25D ended 12/31/2025 for owned 2026 "
+                        "installs; was 0.30 through 2025; third-party leases keep Section 48E at 0.30 to 2027)")
+    p.add_argument("--state-credit", type=float, default=0.0, metavar="DOLLARS",
+                   help="state/local credit in dollars, subtracted from net cost (e.g. NY 25 percent capped $5000)")
     p.add_argument("--sector", default="Residential",
                    choices=["Residential", "Commercial", "Industrial", "Lighting"])
     p.add_argument("--utility", help="URDB utility name (fallback when lat/lon returns no tariff, e.g. 'Long Island Power Authority')")

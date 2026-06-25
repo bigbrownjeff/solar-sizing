@@ -96,12 +96,16 @@
             <input type="range" id="k-pd" min="150" max="240" step="5" value="200"></div>
           <div class="ctl"><label for="k-import">Import rate $/kWh (LIPA weighted)</label>
             <input type="number" id="k-import" min="0" step="0.01" value="0.194"></div>
-          <div class="ctl"><label for="k-export">Export credit $/kWh</label>
-            <input type="number" id="k-export" min="0" step="0.01" value="0.05"></div>
+          <div class="ctl"><label for="k-export">Export credit $/kWh (LI net-metering, TOD off-peak)</label>
+            <input type="number" id="k-export" min="0" step="0.01" value="0.19"></div>
           <div class="ctl"><label for="k-cpw">Cost $/Wp</label>
             <input type="number" id="k-cpw" min="0" step="0.05" value="3.00"></div>
           <div class="ctl"><label for="k-self">Self-consumption</label>
             <input type="number" id="k-self" min="0" max="1" step="0.05" value="0.55"></div>
+          <div class="ctl"><label for="k-itc">Federal ITC (2026: 0, expired 12/31/25)</label>
+            <input type="number" id="k-itc" min="0" max="0.3" step="0.05" value="0"></div>
+          <div class="ctl"><label for="k-sc">State credit $ (NY 25%, cap $5k)</label>
+            <input type="number" id="k-sc" min="0" step="100" value="5000"></div>
         </div>
       </div>
     </div>
@@ -112,7 +116,7 @@
         <div class="kpi"><div class="k">Specific yield</div><div class="v good" id="o-yield">&mdash;</div><div class="d">kWh/kWp/yr, after derate</div></div>
         <div class="kpi"><div class="k">Year-1 generation</div><div class="v" id="o-gen">&mdash;</div><div class="d">kWh/yr</div></div>
         <div class="kpi"><div class="k">Year-1 savings</div><div class="v" id="o-save">&mdash;</div><div class="d" id="o-save-d">&mdash;</div></div>
-        <div class="kpi"><div class="k">Net cost after 30% ITC</div><div class="v" id="o-net">&mdash;</div><div class="d" id="o-cost">&mdash;</div></div>
+        <div class="kpi"><div class="k">Net cost (2026: no federal ITC)</div><div class="v" id="o-net">&mdash;</div><div class="d" id="o-cost">&mdash;</div></div>
         <div class="kpi"><div class="k">Simple payback</div><div class="v" id="o-pay">&mdash;</div><div class="d">net cost / yr-1 savings</div></div>
         <div class="kpi span2"><div class="k">25-yr NPV @ 5% (0.5%/yr degradation)</div><div class="v" id="o-npv">&mdash;</div><div class="d" id="o-npv-d">&mdash;</div></div>
       </div>
@@ -148,7 +152,8 @@
             <li>Specific yield interpolated from PVGIS at 14% system loss, then &times; your roof-walk derate.</li>
             <li>kWp = panel area &times; density (default 200 W/m&sup2;, ~20% modules). Drag a corner to change area.</li>
             <li>Import rate defaults to the LIPA tariff-weighted rate from a real proforma.py run; set yours.</li>
-            <li>Export credit, self-consumption, $/Wp, ITC 30%, 5% discount, 25 yr, 0.5%/yr degradation &mdash; same constants as proforma.py.</li>
+            <li>Export credit defaults to ~$0.19, the PSEG-LI Rate 194 off-peak rate where most solar generation banks under NY time-of-day net metering. (This is NOT California NEM-3.0's ~$0.05 &mdash; the export rule is jurisdiction-specific; set yours.)</li>
+            <li>Federal ITC defaults to 0 &mdash; Section 25D expired 12/31/2025 for owned 2026 installs (third-party leases keep 48E). NY's 25%/$5k state credit is pre-filled. Self-consumption, $/Wp, 5% discount, 25 yr, 0.5%/yr degradation match proforma.py.</li>
             <li>US note: PVGIS here uses PVGIS-NSRDB, the same NSRDB NREL PVWatts uses &mdash; so they are not independent; NASA POWER is the independent check.</li>
           </ul>
         </div>
@@ -173,7 +178,7 @@
           <div class="leads">
             <a class="lead" href="https://www.energysage.com/" target="_blank" rel="noopener"><b>EnergySage</b><span>Compare multiple installer bids side by side</span></a>
             <a class="lead" href="https://findenergy.com/ny/" target="_blank" rel="noopener"><b>Find NY installers</b><span>Local certified installer directory</span></a>
-            <a class="lead" href="https://www.nyserda.ny.gov/All-Programs/NY-Sun" target="_blank" rel="noopener"><b>NY-Sun incentives</b><span>NYSERDA state rebate, stacks on the 30% ITC</span></a>
+            <a class="lead" href="https://www.nyserda.ny.gov/All-Programs/NY-Sun" target="_blank" rel="noopener"><b>NY-Sun incentives</b><span>NY-Sun rebate + 25% state tax credit (the federal ITC expired)</span></a>
             <a class="lead" href="https://www.psegliny.com/saveenergyandmoney/cleanenergyprograms" target="_blank" rel="noopener"><b>PSEG-LI programs</b><span>Your utility's interconnection + net-metering terms</span></a>
           </div>
         </div>
@@ -200,7 +205,7 @@
 const SURFACE = {"lat": 40.667519, "lon": -73.620743, "loss_pct": 14, "source": "PVGIS v5.2 PVcalc (PVGIS-NSRDB)", "azimuths": [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345], "tilts": [5, 15, 25, 35, 45], "grid": {"0": {"5": 1081.7, "15": 948.0, "25": 808.7, "35": 687.0, "45": 568.2}, "15": {"5": 1083.9, "15": 955.4, "25": 820.4, "35": 700.8, "45": 585.1}, "30": {"5": 1089.8, "15": 975.0, "25": 853.5, "35": 739.9, "45": 634.4}, "45": {"5": 1098.8, "15": 1004.3, "25": 903.8, "35": 806.9, "45": 715.5}, "60": {"5": 1110.5, "15": 1040.5, "25": 965.0, "35": 889.1, "45": 813.0}, "75": {"5": 1123.8, "15": 1080.7, "25": 1029.7, "35": 974.2, "45": 912.7}, "90": {"5": 1137.9, "15": 1122.0, "25": 1095.0, "35": 1057.1, "45": 1008.2}, "105": {"5": 1151.7, "15": 1161.9, "25": 1155.8, "35": 1134.0, "45": 1095.4}, "120": {"5": 1164.5, "15": 1197.9, "25": 1210.1, "35": 1201.8, "45": 1173.5}, "135": {"5": 1175.5, "15": 1227.6, "25": 1255.7, "35": 1259.7, "45": 1237.8}, "150": {"5": 1183.9, "15": 1250.7, "25": 1290.5, "35": 1303.2, "45": 1288.0}, "165": {"5": 1189.0, "15": 1265.2, "25": 1313.0, "35": 1330.8, "45": 1318.5}, "180": {"5": 1190.8, "15": 1270.2, "25": 1319.8, "35": 1339.6, "45": 1329.6}, "195": {"5": 1188.9, "15": 1264.9, "25": 1312.2, "35": 1330.3, "45": 1317.5}, "210": {"5": 1183.5, "15": 1249.9, "25": 1289.5, "35": 1300.4, "45": 1285.9}, "225": {"5": 1174.9, "15": 1226.1, "25": 1252.8, "35": 1256.3, "45": 1232.3}, "240": {"5": 1163.8, "15": 1194.9, "25": 1205.9, "35": 1196.0, "45": 1166.8}, "255": {"5": 1150.8, "15": 1158.3, "25": 1149.9, "35": 1126.6, "45": 1087.0}, "270": {"5": 1136.7, "15": 1118.0, "25": 1088.2, "35": 1048.6, "45": 998.8}, "285": {"5": 1122.5, "15": 1076.2, "25": 1022.9, "35": 965.6, "45": 902.9}, "300": {"5": 1109.3, "15": 1036.0, "25": 957.9, "35": 880.3, "45": 803.4}, "315": {"5": 1097.8, "15": 1000.3, "25": 897.3, "35": 798.4, "45": 706.8}, "330": {"5": 1089.0, "15": 971.7, "25": 847.9, "35": 733.2, "45": 627.4}, "345": {"5": 1083.5, "15": 953.5, "25": 817.5, "35": 697.2, "45": 581.3}}};
 const SITE = {lat:40.667519, lon:-73.620743};
 // model constants — mirror proforma.py
-const ITC=0.30, DISCOUNT=0.05, DEGRADATION=0.005, NPV_YEARS=25, MARGINAL_KWP=1.0;
+const DISCOUNT=0.05, DEGRADATION=0.005, NPV_YEARS=25, MARGINAL_KWP=1.0;
 
 // ---- bilinear interpolation over the embedded PVGIS yield surface ----
 function yieldAt(azDeg, tiltDeg){
@@ -304,9 +309,9 @@ function buildCards(){
 const $=id=>document.getElementById(id);
 function knobs(){
   return {derate:+$('k-derate').value, pd:+$('k-pd').value, imp:+$('k-import').value,
-    exp:+$('k-export').value, cpw:+$('k-cpw').value, self:+$('k-self').value};
+    exp:+$('k-export').value, cpw:+$('k-cpw').value, self:+$('k-self').value, itc:+$('k-itc').value, sc:+$('k-sc').value};
 }
-['k-derate','k-pd','k-import','k-export','k-cpw','k-self'].forEach(id=>{
+['k-derate','k-pd','k-import','k-export','k-cpw','k-self','k-itc','k-sc'].forEach(id=>{
   document.addEventListener('input',e=>{ if(e.target.id===id){
     if(id==='k-derate')$('rv-derate').textContent=(+$('k-derate').value).toFixed(2);
     if(id==='k-pd')$('rv-pd').textContent=$('k-pd').value;
@@ -330,13 +335,13 @@ function recompute(){
   const yieldEff = kwTot>0 ? genTot/kwTot : 0;
   const selfKwh=genTot*k.self, expKwh=genTot-selfKwh;
   const savings=selfKwh*k.imp+expKwh*k.exp;
-  const cost=kwTot*1000*k.cpw, net=cost*(1-ITC);
+  const cost=kwTot*1000*k.cpw, net=Math.max(0,cost*(1-k.itc)-k.sc);
   const payback= savings>0? net/savings : Infinity;
   // 25-yr NPV
   let npv=-net, deg=1, disc=1;
   for(let i=0;i<NPV_YEARS;i++){ disc*=1+DISCOUNT; npv+=savings*deg/disc; deg*=1-DEGRADATION; }
   // marginal next kWp at export credit
-  const margGen=yieldEff*MARGINAL_KWP, margVal=margGen*k.exp, margNet=MARGINAL_KWP*1000*k.cpw*(1-ITC);
+  const margGen=yieldEff*MARGINAL_KWP, margVal=margGen*k.exp, margNet=MARGINAL_KWP*1000*k.cpw*(1-k.itc);
   const margPay= margVal>0? margNet/margVal : Infinity;
 
   $('o-kw').textContent=kwTot.toFixed(1)+' kWp';
@@ -356,7 +361,7 @@ function recompute(){
 
   // CLI line
   const kws=planes.map(p=>p._kw.toFixed(1)).join(','), tilts=planes.map(p=>p.tilt).join(','), azs=planes.map(p=>p.az).join(',');
-  $('cli').textContent='python3 proforma.py \\\n  --lat '+SITE.lat+' --lon '+SITE.lon+' \\\n  --kw '+kws+' --tilt '+tilts+' --azimuth '+azs+' \\\n  --source auto --utility "Long Island Power Authority" \\\n  --derate '+k.derate.toFixed(2)+' --export-rate '+k.exp.toFixed(2)+' --self-consumption '+k.self.toFixed(2)+' --cost-per-watt '+k.cpw.toFixed(2);
+  $('cli').textContent='python3 proforma.py \\\n  --lat '+SITE.lat+' --lon '+SITE.lon+' \\\n  --kw '+kws+' --tilt '+tilts+' --azimuth '+azs+' \\\n  --source auto --utility "Long Island Power Authority" \\\n  --derate '+k.derate.toFixed(2)+' --export-rate '+k.exp.toFixed(2)+' --self-consumption '+k.self.toFixed(2)+' --cost-per-watt '+k.cpw.toFixed(2)+' --itc '+k.itc.toFixed(2)+' --state-credit '+k.sc.toFixed(0);
 }
 
 // ---- boot ----
