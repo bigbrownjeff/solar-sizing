@@ -38,3 +38,6 @@ Icon?
 
 # User-run output at the root (the committed copy lives under examples/)
 /proforma.csv
+
+# Session handoffs / agent working notes — internal; never ship to the public repo
+.claude/
