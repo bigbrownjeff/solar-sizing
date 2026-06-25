@@ -124,6 +124,14 @@
             <input type="number" id="k-battery" min="0" step="1" value="0"></div>
           <div class="ctl"><label for="k-ev">EV annual load kWh (0 = no EV)</label>
             <input type="number" id="k-ev" min="0" step="500" value="0"></div>
+          <div class="ctl"><label for="k-tou">Time-of-use billing (real hourly netting; needs 8760 tier)</label>
+            <input type="checkbox" id="k-tou"></div>
+          <div class="ctl"><label for="k-load">Annual household use kWh (TOU only)</label>
+            <input type="number" id="k-load" min="0" step="500" value="10800"></div>
+          <div class="ctl"><label for="k-peak">On-peak rate $/kWh (wkdy 3&ndash;7pm)</label>
+            <input type="number" id="k-peak" min="0" step="0.01" value="0.36"></div>
+          <div class="ctl"><label for="k-night">Overnight rate $/kWh (11pm&ndash;7am)</label>
+            <input type="number" id="k-night" min="0" step="0.01" value="0.13"></div>
         </div>
         <div class="tag" style="margin:8px 0 0;font-size:9px">Battery + EV mirror proforma.py: battery shifts up to kWh&times;365&times;0.9 of export to import value; EV adds load with 60% met by daytime solar, raising self-consumption.</div>
       </div>
@@ -187,6 +195,7 @@
             <li>Import rate defaults to the LIPA tariff-weighted rate from a real proforma.py run; set yours for your utility.</li>
             <li>Export credit defaults to ~$0.19, the PSEG-LI Rate 194 off-peak rate where most solar generation banks under NY time-of-day net metering. (This is NOT California NEM-3.0's ~$0.05 &mdash; the export rule is jurisdiction-specific; set yours.)</li>
             <li>Battery (default 0): shifts up to kWh&times;365&times;0.9 of yearly export from the export credit to the higher import-offset value; costs $1,000/kWh with no ITC. EV (default 0): adds the annual load, 60% met from daytime solar, raising self-consumption. Both mirror proforma.py.</li>
+            <li><strong>Time-of-use (optional, 8760 tier only):</strong> toggle it on and savings switch to <strong>real hourly netting</strong> &mdash; generation vs a typical residential load shape, valued at each hour's TOU rate (default PSEG-LI Rate 194: on-peak $0.36 weekday 3&ndash;7pm, overnight $0.13, off-peak otherwise), with a daily battery peak-shave that only discharges where the rate beats the export credit. It reports your <em>real</em> self-consumption (often ~45&ndash;50%, below the flat 55% guess) and the honest battery value (small under NY's high export credit, large under California's ~$0.05). The load shape is a typical-home proxy; your true numbers need your interval data, which only your meter has.</li>
             <li>Federal ITC defaults to 0 &mdash; Section 25D expired 12/31/2025 for owned 2026 installs (third-party leases keep 48E). NY's 25%/$5k state credit is pre-filled. Self-consumption, $/Wp, 5% discount, 25 yr, 0.5%/yr degradation match proforma.py.</li>
           </ul>
         </div>
@@ -394,7 +403,7 @@ let HOURLY=null;   // {time,ghi,dhi,dni,tair, decl[],Ion[],w[],cosZ[],mo[], anch
 function buildSunGeometry(H, lat, lon){
   const N=H.time.length, latR=lat*DEG;
   H.decl=new Float64Array(N); H.Ion=new Float64Array(N); H.w=new Float64Array(N);
-  H.cosZ=new Float64Array(N); H.mo=new Uint8Array(N);
+  H.cosZ=new Float64Array(N); H.mo=new Uint8Array(N); H.hr=new Uint8Array(N); H.dow=new Uint8Array(N);
   let doy=1, lastKey='';
   for(let i=0;i<N;i++){
     const t=H.time[i];
@@ -410,16 +419,17 @@ function buildSunGeometry(H, lat, lon){
     const Lstd=15*H.off;                                               // timezone standard meridian
     const tsolarMin=(hl-0.5)*60 + 4*(lon-Lstd) + EoT;                  // Open-Meteo radiation is the PRECEDING-hour mean -> centre at hl-0.5 (validated: makes E/W symmetric vs PVGIS)
     const w=(tsolarMin/60-12)*15*DEG;
-    H.decl[i]=decl; H.Ion[i]=Ion; H.w[i]=w; H.mo[i]=mo;
+    H.decl[i]=decl; H.Ion[i]=Ion; H.w[i]=w; H.mo[i]=mo; H.hr[i]=hl;
+    H.dow[i]=new Date(Date.UTC(+t.slice(0,4),mo,day)).getUTCDay();   // 0=Sun, for TOU weekday/weekend
     H.cosZ[i]=Math.sin(decl)*Math.sin(latR)+Math.cos(decl)*Math.cos(latR)*Math.cos(w);
   }
 }
-function specificYieldHourly(latDeg, tiltDeg, azCompassDeg){
+function hourlyKWp(latDeg, tiltDeg, azCompassDeg){   // per-hour AC (kWh per kWp), Float64Array[8760], or null
   const H=HOURLY; if(!H) return null;
   let gS=azCompassDeg-180; while(gS>180)gS-=360; while(gS<-180)gS+=360;
   const latR=latDeg*DEG, beta=tiltDeg*DEG, g=gS*DEG, rho=0.2;
   const cb=Math.cos(beta), sb=Math.sin(beta), cg=Math.cos(g), sg=Math.sin(g);
-  const N=H.time.length; let poaAC=0;
+  const N=H.time.length, out=new Float64Array(N);
   for(let i=0;i<N;i++){
     let GHI=H.ghi[i]; if(GHI==null) continue;
     const a=H.anchor[H.mo[i]];
@@ -442,9 +452,13 @@ function specificYieldHourly(latDeg, tiltDeg, azCompassDeg){
     const eff=(beamT+circ)*kB + (diffT-circ)*0.95 + grndT*0.95;     // effective POA (W/m2)
     const poaW=eff>0?eff:0;
     const Tcell=H.tair[i] + (poaW/800)*25;                          // per-hour cell temperature
-    poaAC += poaW*(1 + TEMP_COEFF*(Tcell-25));                      // Wh/m2 over the hour
+    out[i]=poaW*(1 + TEMP_COEFF*(Tcell-25))/1000*(1-SYS_LOSS);      // kWh/kWp this hour (AC)
   }
-  return poaAC/1000*(1-SYS_LOSS);                                   // → kWh/kWp/yr AC
+  return out;
+}
+function specificYieldHourly(latDeg, tiltDeg, azCompassDeg){        // annual kWh/kWp/yr = sum of the hourly array
+  const a=hourlyKWp(latDeg, tiltDeg, azCompassDeg); if(!a) return null;
+  let s=0; for(let i=0;i<a.length;i++) s+=a[i]; return s;
 }
 
 // ===== resource-uncertainty band (P50 / P90), decomposed and honest ============
@@ -562,9 +576,10 @@ const $=id=>document.getElementById(id);
 function knobs(){
   return {derate:+$('k-derate').value, pd:+$('k-pd').value, imp:+$('k-import').value,
     exp:+$('k-export').value, cpw:+$('k-cpw').value, self:+$('k-self').value,
-    itc:+$('k-itc').value, sc:+$('k-sc').value, battery:+$('k-battery').value, ev:+$('k-ev').value};
+    itc:+$('k-itc').value, sc:+$('k-sc').value, battery:+$('k-battery').value, ev:+$('k-ev').value,
+    tou:$('k-tou').checked, load:+$('k-load').value, peak:+$('k-peak').value, night:+$('k-night').value};
 }
-['k-derate','k-pd','k-import','k-export','k-cpw','k-self','k-itc','k-sc','k-battery','k-ev'].forEach(id=>{
+['k-derate','k-pd','k-import','k-export','k-cpw','k-self','k-itc','k-sc','k-battery','k-ev','k-tou','k-load','k-peak','k-night'].forEach(id=>{
   document.addEventListener('input',e=>{ if(e.target.id===id){
     if(id==='k-derate')$('rv-derate').textContent=(+$('k-derate').value).toFixed(2);
     if(id==='k-pd')$('rv-pd').textContent=$('k-pd').value;
@@ -584,19 +599,62 @@ function savingsFor(genTot, k){
   let expKwh = Math.max(0, genTot - selfKwh);
   const batShift = k.battery>0 ? Math.min(expKwh, k.battery*365*BATTERY_THROUGHPUT) : 0;
   selfKwh += batShift; expKwh -= batShift;
-  return { selfKwh, expKwh, batShift, savings: selfKwh*k.imp + expKwh*k.exp };
+  return { selfKwh, expKwh, batShift, savings: selfKwh*k.imp + expKwh*k.exp, selfFrac:selfKwh/Math.max(1,genTot), tou:false };
+}
+// ===== real time-of-use economics (active only in the 8760 tier) =====================
+// Canonical residential 24h load shape (fractions of daily use, evening-peaking; normalized).
+// A typical-home proxy: real numbers need your interval data, which only your meter has.
+const LOADSHAPE=(()=>{const s=[.030,.028,.027,.026,.027,.030,.037,.043,.043,.040,.038,.037,.037,.036,.037,.039,.043,.050,.058,.060,.057,.051,.043,.036];const t=s.reduce((a,v)=>a+v,0);return s.map(v=>v/t);})();
+// PSEG-LI Rate 194 TOD: weekday on-peak 3-7pm, overnight 11pm-7am, off-peak (the import knob) otherwise.
+function importRateAt(hr, dow, k){
+  if(!k.tou) return k.imp;
+  if(hr>=23 || hr<7) return k.night;
+  if(dow>=1 && dow<=5 && hr>=15 && hr<19) return k.peak;
+  return k.imp;
+}
+// Hourly netting: generation vs the load shape, valued at each hour's TOU rate, + a daily
+// greedy battery peak-shave (discharge only into hours whose rate beats the export credit).
+// EV adds daytime load (its solar-charged share), soaking export into self-use. Mirrors proforma.py --tou.
+function savingsTOU(prof, k){
+  const H=HOURLY, N=prof.length, dayLoad=k.load/365, evDay=(k.ev>0?k.ev*EV_SOLAR_FRACTION:0)/365/7;
+  let self=0, exp=0, savSelf=0; const cell=new Array(N);
+  for(let i=0;i<N;i++){
+    const hr=H.hr[i];
+    const load=dayLoad*LOADSHAPE[hr] + ((k.ev>0 && hr>=9 && hr<16)?evDay:0);
+    const g=prof[i], s=Math.min(g,load), e=g-s, rate=importRateAt(hr,H.dow[i],k);
+    self+=s; exp+=e; savSelf+=s*rate; cell[i]={e, sh:Math.max(0,load-g), rate};
+  }
+  let batShift=0, batVal=0;
+  if(k.battery>0){
+    for(let d=0; d*24+24<=N; d++){
+      let surplus=0; const short=[];
+      for(let hh=0;hh<24;hh++){const c=cell[d*24+hh]; surplus+=c.e; if(c.sh>0 && c.rate>k.exp) short.push(c);}
+      let avail=Math.min(surplus, k.battery)*BATTERY_THROUGHPUT;     // one cycle/day, charged from surplus
+      short.sort((a,b)=>b.rate-a.rate);                             // cover highest-rate shortfall first
+      for(const c of short){ if(avail<=0)break; const cov=Math.min(avail,c.sh); avail-=cov; batVal+=cov*(c.rate-k.exp); batShift+=cov; }
+    }
+  }
+  return { selfKwh:self+batShift, expKwh:exp-batShift, batShift, savings:savSelf+exp*k.exp+batVal, selfFrac:self/Math.max(1,self+exp), tou:true };
 }
 function recompute(){
   const k=knobs(); let kwTot=0, genTot=0, areaTot=0;
+  let genProf=null;   // total hourly generation (kWh/hr), built alongside the annual yield (8760 tier only)
   planes.forEach(p=>{
-    const area=p.len*p.wid, kw=area*k.pd/1000, y=yieldAt(p.az,p.tilt)*k.derate;
+    const area=p.len*p.wid, kw=area*k.pd/1000;
+    const harr = HOURLY ? hourlyKWp(SITE.lat, p.tilt, p.az) : null;
+    let y;
+    if(harr){ let s=0; for(let i=0;i<harr.length;i++) s+=harr[i]; y=s*k.derate;
+      const sc=kw*k.derate; if(!genProf) genProf=new Float64Array(harr.length);
+      for(let i=0;i<harr.length;i++) genProf[i]+=harr[i]*sc; }
+    else { y=yieldAt(p.az,p.tilt)*k.derate; }
     p._kw=kw; p._gen=kw*y; p._area=area;
     kwTot+=kw; genTot+=kw*y; areaTot+=area;
     const el=$('kw-'+p.id); if(el) el.textContent=kw.toFixed(1)+' kWp · '+Math.round(area)+' m²';
   });
   const yieldEff = kwTot>0 ? genTot/kwTot : 0;
 
-  const S=savingsFor(genTot, k);
+  const todOn = !!(genProf && k.tou);
+  const S = todOn ? savingsTOU(genProf, k) : savingsFor(genTot, k);
   const selfKwh=S.selfKwh, expKwh=S.expKwh, batShift=S.batShift, savings=S.savings, evSolar=k.ev>0?k.ev*EV_SOLAR_FRACTION:0;
   const batteryCost = k.battery*BATTERY_COST_PER_KWH;             // no ITC
   const pvCost = kwTot*1000*k.cpw;
@@ -610,7 +668,8 @@ function recompute(){
   // re-runs the same savings split → an honest P90 payback.
   const p90f=p90Factor();
   const genP90 = p90f!=null ? genTot*p90f : null;
-  const payP90 = genP90!=null ? (savingsFor(genP90,k).savings>0 ? net/savingsFor(genP90,k).savings : Infinity) : null;
+  const savP90 = genP90==null ? null : (todOn ? savingsTOU(genProf.map(x=>x*p90f), k).savings : savingsFor(genP90,k).savings);
+  const payP90 = savP90!=null ? (savP90>0 ? net/savP90 : Infinity) : null;
   let npv=-net, deg=1, disc=1;
   for(let i=0;i<NPV_YEARS;i++){ disc*=1+DISCOUNT; npv+=savings*deg/disc; deg*=1-DEGRADATION; }
   const margGen=yieldEff*MARGINAL_KWP, margVal=margGen*k.exp, margNet=MARGINAL_KWP*1000*k.cpw*(1-k.itc);
@@ -624,7 +683,8 @@ function recompute(){
     ? 'kWh/yr · P90 '+Math.round(genP90).toLocaleString()+' ('+Math.round((1-p90f)*100)+'% below P50)'
     : 'kWh/yr';
   $('o-save').textContent=money(savings)+'/yr';
-  $('o-save-d').textContent=Math.round(selfKwh).toLocaleString()+' self @ $'+k.imp.toFixed(3)
+  $('o-save-d').textContent=(todOn?'TOU · '+Math.round(S.selfFrac*100)+'% self-used (hourly) · ':'')
+    +Math.round(selfKwh).toLocaleString()+' self @ '+(todOn?'TOU rates':'$'+k.imp.toFixed(3))
     +' · '+Math.round(expKwh).toLocaleString()+' export @ $'+k.exp.toFixed(2)
     +(batShift>0?' · '+Math.round(batShift).toLocaleString()+' battery-shifted':'')
     +(evSolar>0?' · '+Math.round(Math.min(evSolar,genTot)).toLocaleString()+' to EV':'');
@@ -646,6 +706,7 @@ function recompute(){
     +' --self-consumption '+k.self.toFixed(2)+' --cost-per-watt '+k.cpw.toFixed(2)+' --itc '+k.itc.toFixed(2)+' --state-credit '+k.sc.toFixed(0);
   if(k.battery>0) cli+=' \\\n  --battery-kwh '+k.battery;
   if(k.ev>0)      cli+=' --ev-kwh '+k.ev+' --ev-solar-fraction '+EV_SOLAR_FRACTION;
+  if(k.tou)       cli+='\n  # Time-of-use savings are modeled in-browser (hourly Open-Meteo netting vs a typical load shape); this command gives the conservative flat-rate baseline.';
   $('cli').textContent=cli;
 }
 
