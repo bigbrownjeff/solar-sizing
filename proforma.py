@@ -298,6 +298,60 @@ def npv(savings_y1: float, net_cost: float) -> float:
     return flows - net_cost
 
 
+# Canonical residential 24h load shape (fractions of daily use, evening-peaking);
+# mirrors index.html LOADSHAPE. A typical-home proxy: real numbers need interval data.
+TOU_LOADSHAPE = [.030, .028, .027, .026, .027, .030, .037, .043, .043, .040, .038, .037,
+                 .037, .036, .037, .039, .043, .050, .058, .060, .057, .051, .043, .036]
+
+
+def tou_rate(h: int, off: float, peak: float, night: float) -> float:
+    """Local-standard hour -> TOU import rate. Peak is weekday-only; at month x hour
+    granularity (a TMY has no calendar) the 3-7pm window is blended by the 5/7 weekday
+    fraction, the statistical equivalent of the browser's discrete weekday/weekend."""
+    if h >= 23 or h < 7:
+        return night
+    if 15 <= h < 19:
+        return (5.0 / 7.0) * peak + (2.0 / 7.0) * off
+    return off
+
+
+def savings_tou(P, derate, annual_load, off, peak, night, export_rate,
+                battery_kwh, ev_kwh, ev_frac) -> dict:
+    """Real hourly netting at month x local-hour granularity -- mirrors index.html
+    savingsTOU. Generation (P[m][h], derated) vs a residential load shape; self-use
+    valued at each hour's TOU rate; plus a daily battery peak-shave that discharges
+    only into hours whose rate beats the export credit (self-using overnight at the
+    cheap rate loses to exporting, so it is skipped)."""
+    ssum = sum(TOU_LOADSHAPE)
+    shape = [v / ssum for v in TOU_LOADSHAPE]
+    day_load = annual_load / 365.0
+    ev_day = (ev_kwh * ev_frac) / 365.0 / 7.0 if ev_kwh > 0 else 0.0   # solar EV share per daytime hr
+    self_kwh = export_kwh = self_val = 0.0
+    batt_shift = batt_val = 0.0
+    for m, D in enumerate(DAYS_IN_MONTH):
+        cells = []
+        for h in range(24):
+            g = P[m][h] / D * derate                          # typical-day generation (derated)
+            load = day_load * shape[h] + (ev_day if 9 <= h < 16 else 0.0)
+            s = min(g, load); e = g - s; sh = max(0.0, load - g)
+            rate = tou_rate(h, off, peak, night)
+            self_kwh += s * D; export_kwh += e * D; self_val += s * rate * D
+            cells.append((e, sh, rate))
+        if battery_kwh > 0:
+            surplus = sum(c[0] for c in cells)
+            avail = min(surplus, battery_kwh) * BATTERY_RTE            # one cycle per typical day
+            for e, sh, rate in sorted(cells, key=lambda c: -c[2]):
+                if avail <= 0 or rate <= export_rate:
+                    break
+                cov = min(avail, sh); avail -= cov
+                batt_val += cov * (rate - export_rate) * D
+                batt_shift += cov * D
+    savings = self_val + export_kwh * export_rate + batt_val
+    return {"self_kwh": self_kwh + batt_shift, "export_kwh": export_kwh - batt_shift,
+            "self_val": self_val, "savings": savings, "batt_shift_kwh": batt_shift,
+            "batt_val": batt_val, "self_frac": self_kwh / max(1.0, self_kwh + export_kwh)}
+
+
 def build_proforma(args, R, tiered, kw_total, prod_path, P, annual_raw) -> dict:
     r_tw = tariff_weighted_rate(P, R)
     gen = annual_raw * args.derate
@@ -343,6 +397,30 @@ def build_proforma(args, R, tiered, kw_total, prod_path, P, annual_raw) -> dict:
         batt_payback = batt_cost / batt_benefit if batt_benefit > 0 else float("inf")
         savings += batt_benefit
 
+    # --- real time-of-use override (mirrors index.html) -------------------------
+    # When --tou is set, replace the flat self-consumption fraction with real hourly
+    # netting of P[m][h] against a load shape at TOU rates. The flat block above ran
+    # first (harmless) and is overwritten here; runs WITHOUT --tou are byte-identical.
+    if args.tou:
+        off = args.import_rate if args.import_rate else r_tw
+        T = savings_tou(P, args.derate, args.annual_load, off, args.peak_rate,
+                        args.overnight_rate, args.export_rate, args.battery_kwh,
+                        args.ev_kwh, args.ev_solar_fraction)
+        self_kwh = T["self_kwh"]; export_kwh = T["export_kwh"]; savings = T["savings"]
+        export_val = export_kwh * args.export_rate
+        self_val = savings - export_val                     # keeps rows 13+14 == 15
+        batt_shift_kwh = T["batt_shift_kwh"]; batt_benefit = T["batt_val"]
+        batt_cost = args.battery_kwh * args.battery_cost if args.battery_kwh > 0 else 0.0
+        batt_payback = batt_cost / batt_benefit if batt_benefit > 0 else float("inf")
+        if args.ev_kwh > 0:                                 # attribute EV lift via with/without diff
+            no_ev = savings_tou(P, args.derate, args.annual_load, off, args.peak_rate,
+                                args.overnight_rate, args.export_rate, args.battery_kwh,
+                                0.0, args.ev_solar_fraction)["savings"]
+            ev_self_kwh = args.ev_kwh * args.ev_solar_fraction
+            ev_self_val = savings - no_ev
+        else:
+            ev_self_kwh = 0.0; ev_self_val = 0.0
+
     cost = kw_total * 1000.0 * args.cost_per_watt
     itc = cost * args.itc
     net = cost - itc - args.state_credit + batt_cost
@@ -357,12 +435,20 @@ def build_proforma(args, R, tiered, kw_total, prod_path, P, annual_raw) -> dict:
     # battery-augmented savings at each export rate alongside the solar-only line.
     base_self_val = self_val  # already includes any EV lift; battery handled per-er
     sens = []
+    tou_off = args.import_rate if args.import_rate else r_tw
     for er in sorted({0.0, 0.05, 0.10, parity_er}):
-        s = base_self_val + export_kwh * er
-        s_batt = s
-        if args.battery_kwh > 0:
-            shift = min(export_kwh, args.battery_kwh * BATTERY_CYCLES * BATTERY_RTE)
-            s_batt = s + shift * (r_tw - er)
+        if args.tou:                                        # re-net at each export rate
+            s = savings_tou(P, args.derate, args.annual_load, tou_off, args.peak_rate,
+                            args.overnight_rate, er, 0.0, args.ev_kwh, args.ev_solar_fraction)["savings"]
+            s_batt = (savings_tou(P, args.derate, args.annual_load, tou_off, args.peak_rate,
+                                  args.overnight_rate, er, args.battery_kwh, args.ev_kwh,
+                                  args.ev_solar_fraction)["savings"] if args.battery_kwh > 0 else s)
+        else:
+            s = base_self_val + export_kwh * er
+            s_batt = s
+            if args.battery_kwh > 0:
+                shift = min(export_kwh, args.battery_kwh * BATTERY_CYCLES * BATTERY_RTE)
+                s_batt = s + shift * (r_tw - er)
         sens.append((er, s, s_batt, net / s_batt if s_batt > 0 else float("inf")))
     return {"r_tw": r_tw, "tiered": tiered, "gen": gen, "yield_kwp": yield_kwp,
             "self_kwh": self_kwh, "export_kwh": export_kwh, "self_val": self_val,
@@ -374,7 +460,7 @@ def build_proforma(args, R, tiered, kw_total, prod_path, P, annual_raw) -> dict:
             "batt_payback": batt_payback,
             "net": net, "payback": payback, "marg_val": marg_val,
             "marg_payback": marg_payback, "npv": npv(savings, net), "sens": sens,
-            "prod_path": prod_path}
+            "tou": args.tou, "prod_path": prod_path}
 
 
 def yrs(v: float) -> str:
@@ -395,7 +481,10 @@ def proforma_rows(args, m, tariff_name, kw_total, planes_desc, site) -> list[lis
         [9, "Tariff", tariff_name, "", ""],
         [10, "Tariff-weighted import rate", f"{m['r_tw']:.4f}", "$/kWh", "weighted by WHEN the panels produce; " + tier],
         [11, "Export credit", f"{args.export_rate:g}", "$/kWh", "set by you — URDB rarely encodes post-NEM-3.0 exports"],
-        [12, "Self-consumption ratio", f"{args.self_consumption:g}", "x", "napkin knob; replace with interval data for a lender"],
+        [12, "Self-consumption ratio",
+         f"{m['self_kwh']/m['gen']:.2f}" if m.get("tou") else f"{args.self_consumption:g}", "x",
+         "REAL hourly netting of generation vs a typical load shape at TOU rates (--tou)"
+         if m.get("tou") else "napkin knob; replace with interval data for a lender"],
         [13, "Self-consumed energy", f"{m['self_kwh']:.0f}", "kWh/yr", f"${m['self_val']:.0f}/yr at the weighted import rate"],
         [14, "Exported energy", f"{m['export_kwh']:.0f}", "kWh/yr", f"${m['export_val']:.0f}/yr at the export credit"],
         [15, "Annual savings, year 1", f"{m['savings']:.0f}", "$/yr", ""],
@@ -534,6 +623,17 @@ def parse_args(argv=None):
     p.add_argument("--ev-solar-fraction", type=float, default=0.6, metavar="FRAC",
                    help="share of EV charging done from daytime solar (default 0.6). The solar-offset "
                         "part lifts self-consumption from the export rate to the import rate")
+    p.add_argument("--tou", action="store_true",
+                   help="real time-of-use billing: net hourly generation (the P[month][hour] matrix) "
+                        "against a typical residential load shape at TOU rates, replacing the flat "
+                        "--self-consumption fraction. Default off; runs without --tou are byte-identical")
+    p.add_argument("--annual-load", type=float, default=10800.0, metavar="KWH",
+                   help="annual household consumption kWh/yr for --tou netting (default 10800, ~US avg)")
+    p.add_argument("--peak-rate", type=float, default=0.36, metavar="RATE",
+                   help="on-peak $/kWh for --tou (default 0.36 = PSEG-LI Rate 194 weekday 3-7pm); "
+                        "off-peak = --import-rate or the tariff-weighted rate")
+    p.add_argument("--overnight-rate", type=float, default=0.13, metavar="RATE",
+                   help="overnight $/kWh for --tou, 11pm-7am (default 0.13 = PSEG-LI Rate 194)")
     p.add_argument("--itc", type=float, default=0.0,
                    help="federal ITC fraction (default 0.0: Section 25D ended 12/31/2025 for owned 2026 "
                         "installs; was 0.30 through 2025; third-party leases keep Section 48E at 0.30 to 2027)")
