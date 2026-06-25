@@ -1,6 +1,6 @@
 # Privacy & data provenance
 
-**Short version: everything committed in this folder is public-source or invented for illustration. Nothing here is a real customer, a real roof, a real quote, or a real utility bill. The live mode talks to exactly two federal-data endpoints, only when you run it, with inputs you typed.**
+**Short version: everything committed in this folder is public-source or invented for illustration. Nothing here is a real customer, a private home, a real quote, or a real utility bill; the map demo (`index.html`) uses a public building's rooftop as a generic example backdrop, not anyone's residence. The live mode talks to a small set of public-data endpoints (NREL and NASA in the US, PVGIS in the EU, and the OpenEI tariff database), only when you run it, with inputs you typed.**
 
 ## What the data is
 
@@ -9,13 +9,19 @@
 - **The calibrated constants are derived from the note's own table, and the demo says so in its comments:** the 1,586 kWh/kWp/yr pre-shading yield basis and the $0.313/kWh tariff-weighted displaced-import rate are back-derived from FIG.1's published rows, not taken from any customer's bill.
 - **The FIG.1 tab is deterministic and fully offline.** No PRNG, no runtime data generation, no network calls, no storage. The only state is two slider positions; reset returns the exact boot state — which reproduces the note's FIG.1 honest column.
 - **`fixtures/` is doc-sourced, not captured.** `pvwatts-sample.json` reproduces the example response printed in the PVWatts v8 documentation (retrieved 2026-06-10); `urdb-sample.json` is built by hand to the URDB API's documented `detail=full` schema with illustrative rates. Each file carries a `_fixture_note` saying exactly this. `examples/` is the committed output of running `proforma.py --fixtures` on them — zero network.
+- **`index.html` (the map demo)** centers on a public building as a generic Long Island example (Rockville Centre, NY); no private residence, no customer. It loads Leaflet from a CDN and Esri World Imagery map tiles on open (a satellite map needs tiles), but every yield and economics number is computed in the page from a pre-fetched PVGIS surface (120 points) embedded in the file. Nothing about a roof you drag is ever sent anywhere — there is no input field that leaves the page.
 
 ## The live mode (demo.html "Live data" tab, and proforma.py)
 
-- **Two endpoints, total:** `developer.nrel.gov/api/pvwatts/v8.json` (NREL PVWatts — production simulation) and `api.openei.org/utility_rates` (OpenEI Utility Rate Database — filed tariffs). There is no third endpoint, no telemetry, no analytics, anywhere in this repo.
+- **Four endpoints, total** — the ones the tool exists to query, and nothing else:
+  - `developer.nrel.gov/api/pvwatts/v8.json` — NREL PVWatts production *(the only endpoint that ever receives your API key)*
+  - `re.jrc.ec.europa.eu/api/v5_2/seriescalc` — EU PVGIS production *(keyless; the automatic fallback when NREL is unreachable)*
+  - `power.larc.nasa.gov/api/temporal/climatology/point` — NASA POWER, an independent resource cross-check *(keyless)*
+  - `api.openei.org/utility_rates` — OpenEI Utility Rate Database, filed tariffs
+  No telemetry, no analytics, no other endpoint anywhere in this repo.
 - **What gets sent, and when:** your coordinates (and optional street address, tariff lookup only), system size/tilt/azimuth, and your API key — only when you click Fetch in the browser or run the CLI. The browser page makes **zero requests until you click**; loading it sends nothing.
 - **The API key** comes from the input field, `--api-key`, the `NREL_API_KEY` env var, or the public `DEMO_KEY` fallback. It lives in page/process memory only — never localStorage, never cookies, never disk, never logs. Error messages redact the key from URLs before printing. Reload the page and it's gone.
-- **A street address is location data.** If you type your real address or your roof's exact coordinates, those go to the two federal endpoints above (that's the tool's whole job) and nowhere else. Nothing is stored anywhere when the run ends; the CSV download is assembled inside the page and never touches a server.
+- **A street address is location data.** If you type your real address or your roof's exact coordinates, those go to the production and tariff endpoints above (that's the tool's whole job) and nowhere else. Nothing is stored anywhere when the run ends; the CSV download is assembled inside the page and never touches a server.
 - **What comes back is shown as received:** PVWatts' station/dataset metadata and URDB's tariff list render verbatim (HTML-escaped), including URDB's freshness caveats. The tool links each tariff's public filing so you can verify it.
 
 ## What this folder deliberately does NOT contain

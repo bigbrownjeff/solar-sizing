@@ -1,19 +1,19 @@
-"# solar-sizing honest pro forma — proforma.py, 2026-06-11 01:10Z"
-"# data: DOC-SOURCED FIXTURES — PVWatts v8 docs example response + schema-built URDB sample; illustrative, no live API was called"
+"# solar-sizing honest pro forma — proforma.py, 2026-06-24 23:58Z"
+# data: DOC-SOURCED FIXTURES — no live API called
 "# not a quote, not sizing advice; the note's first instruction is to walk the roof"
 row,item,value,unit,note
 1,Site,"40, -105 (doc example)","lat, lon",
-2,Weather data,NSRDB PSM V3 GOES tmy-2020 3.2.0 149190.csv,,"NREL NSRDB TMY via PVWatts v8 — typical year, not your weather"
-3,System size,4,kWp DC,yours to vary; see marginal row
-4,Tilt / azimuth,20 / 180,degrees,
-5,PVWatts system losses,14,%,v8 default; includes ~3% generic shading
+2,Production source,monthly fixture (offline),,"auto: PVWatts if reachable, else PVGIS"
+3,System size,4,kWp DC,4kW fixture
+4,Planes (tilt/azimuth),4kW fixture,deg,"azimuth = compass; 90=E,180=S,270=W"
+5,System losses,14,%,applied to both sources; includes ~3% generic shading
 6,Shading derate — roof walk,0.85,x,walk the roof; satellites miss the 4pm tree
-7,Specific yield (after derate),878,kWh/kWp/yr,monthly fallback (kWh spread across 9:00–17:00)
+7,Specific yield (after derate),878,kWh/kWp/yr,monthly fixture (offline)
 8,Year-1 generation,3512,kWh/yr,
-9,Tariff,"Example Power & Light (fixture) — Residential TOU E-X (illustrative, NEM-3.0-era shape)",,URDB label fixture00000000000000a1
+9,Tariff,"Example Power & Light (fixture) — Residential TOU E-X (illustrative, NEM-3.0-era shape)",,
 10,Tariff-weighted import rate,0.3213,$/kWh,weighted by WHEN the panels produce; first-tier rates
-11,Export credit,0.05,$/kWh,set by you — URDB rarely encodes post-NEM-3.0 export schedules
-12,Self-consumption ratio,0.55,x,napkin knob; replace with interval-data analysis for a lender
+11,Export credit,0.05,$/kWh,set by you — URDB rarely encodes post-NEM-3.0 exports
+12,Self-consumption ratio,0.55,x,napkin knob; replace with interval data for a lender
 13,Self-consumed energy,1931,kWh/yr,$620/yr at the weighted import rate
 14,Exported energy,1580,kWh/yr,$79/yr at the export credit
 15,"Annual savings, year 1",699,$/yr,
@@ -21,8 +21,8 @@ row,item,value,unit,note
 17,Federal ITC (30%),-3600,$,
 18,Net cost,8400,$,
 19,Simple payback,12.0,yr,net cost / year-1 savings; no escalation on purpose
-20,25-yr NPV @ 5%,1004,$,"0.5%/yr panel degradation, flat tariff"
-M1,Marginal next-kWp payback,47.8,yr,the next kWp earns ~$44/yr at the export credit against $2100 net — the number no configurator shows you
+20,25-yr NPV @ 5%,1004,$,"0.5%/yr degradation, flat tariff"
+M1,Marginal next-kWp payback,47.8,yr,the next kWp earns ~$44/yr at the export credit — the number no configurator shows you
 S1,Sensitivity — export credit,0.0000,$/kWh,"savings $620/yr, payback 13.5 yr"
 S2,Sensitivity — export credit,0.0500,$/kWh,"savings $699/yr, payback 12.0 yr"
 S3,Sensitivity — export credit,0.1000,$/kWh,"savings $778/yr, payback 10.8 yr"

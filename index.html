@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Honest solar sizing — drag your roof, see the real number · example Long Island roof</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  :root{
+    --ink:#1b1b1b; --muted:#6b6b6b; --line:#e2e2e0; --paper:#fbfbf9;
+    --honest:#2f6f4e; --honestbg:#eaf2ed; --optim:#a3532b;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:'Source Serif Pro',Georgia,'Times New Roman',serif;
+    --sans:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 28px 64px}
+  header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{font-family:var(--serif);font-size:30px;line-height:1.12;margin:6px 0 6px}
+  .sub{color:var(--muted);max-width:78ch;font-size:15px;margin:0}
+  h2{font-family:var(--serif);font-size:20px;margin:26px 0 10px}
+  a{color:var(--ink)}
+  .layout{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;align-items:start}
+  #map{height:520px;border:1px solid var(--ink);background:#dfe3df}
+  .maphint{font-family:var(--mono);font-size:11px;color:var(--muted);margin:6px 0 0}
+  .planes{margin:14px 0 0}
+  .plane{border:1px solid var(--line);background:#fff;padding:10px 12px;margin:0 0 10px}
+  .plane h3{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+  .plane h3 .dot{width:11px;height:11px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:-1px}
+  .plane .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+  .ctl label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+  .ctl .rv{color:var(--ink);font-weight:600;text-transform:none;letter-spacing:0;font-size:12px}
+  input[type=range]{width:100%;accent-color:var(--honest);margin:0}
+  input[type=range]:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 4px}
+  .kpi{background:#fff;border:1px solid var(--line);padding:10px 12px}
+  .kpi.span2{grid-column:span 2}
+  .kpi .k{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 3px}
+  .kpi .v{font-family:var(--serif);font-size:23px;font-weight:600}
+  .kpi .v.good{color:var(--honest)} .kpi .v.warn{color:var(--optim)}
+  .kpi .d{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .knobs{border:1px solid var(--line);background:#fff;padding:10px 12px;margin:12px 0 0}
+  .knobs .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px}
+  .knobs input[type=number]{width:100%;padding:6px 8px;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:2px}
+  .delta{font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-left:3px solid var(--honest);background:var(--honestbg);padding:10px 12px;margin:12px 0}
+  .delta.warn{border-left-color:var(--optim);background:#fff}
+  details{border:1px solid var(--line);background:#fff;margin:10px 0 0;padding:0 12px}
+  summary{cursor:pointer;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;padding:10px 0}
+  .prov{font-size:12.5px;padding:0 0 12px}
+  .prov ul{margin:6px 0 10px;padding-left:18px} .prov li{margin:3px 0}
+  .cli{font-family:var(--mono);font-size:11.5px;background:#1b1b1b;color:#eaf2ed;padding:10px 12px;border-radius:2px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:4px 0}
+  .copy{font-family:var(--sans);font-size:12px;border:1px solid var(--ink);background:#fff;padding:5px 10px;border-radius:2px;cursor:pointer}
+  table.calls{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 0}
+  table.calls th,table.calls td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.calls th{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .leads{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 2px}
+  .lead{border:1px solid var(--line);padding:9px 11px;font-size:12.5px;text-decoration:none;color:var(--ink);background:#fff}
+  .lead b{display:block;font-size:13px;margin-bottom:1px}
+  .lead span{color:var(--muted);font-size:11.5px}
+  footer{margin-top:26px;border-top:1px solid var(--line);padding-top:14px;font-size:12.5px;color:var(--muted)}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .noscript,.maperr{display:none;border:1px solid var(--optim);border-left:3px solid var(--optim);background:#fff;padding:10px 12px;font-size:12.5px;margin:8px 0}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.leads{grid-template-columns:1fr}#map{height:380px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Honest-arithmetic solar sizing · live-derived · nothing about your roof leaves this page</div>
+    <h1>Drag your roof. See the real number.</h1>
+    <p class="sub">The two panels below are an example array on <strong>a Long Island rooftop</strong> (Rockville Centre, NY,
+    in the PSEG Long Island / LIPA service area), seeded as a starting estimate. Drag each panel to fit your own roof, drag a
+    corner to resize, and set the tilt and azimuth &mdash; real roofs are rarely square to the compass, and the tool handles any angle.
+    Every number on the right recomputes live from a pre-fetched <strong>PVGIS</strong> yield surface for this location.
+    Not a quote. The arithmetic you run <em>before</em> trusting one. The exact <code>proforma.py</code> command for your current
+    layout is at the bottom.</p>
+  </header>
+
+  <div class="layout">
+    <div>
+      <div id="map"></div>
+      <div class="maperr" id="maperr">The satellite map could not load (offline, or the tile host is blocked).
+        The panels and every number still work; the map is just the backdrop. The provenance panel lists what it would have loaded.</div>
+      <p class="maphint">Esri World Imagery, ~0.1 m/px here. Drag the center handle to move a panel; drag a corner to resize.
+        Tilt and azimuth are sliders (you cannot read tilt from above). The seed is a starting point, not a site survey.</p>
+      <div class="planes" id="planes"></div>
+      <div class="knobs">
+        <div class="tag" style="margin-bottom:8px">Economic knobs &mdash; yours to set, exactly as in proforma.py</div>
+        <div class="grid">
+          <div class="ctl"><label for="k-derate">Shading derate &mdash; roof walk <span class="rv" id="rv-derate">0.85</span></label>
+            <input type="range" id="k-derate" min="0.70" max="1.00" step="0.01" value="0.85"></div>
+          <div class="ctl"><label for="k-pd">Panel density W/m&sup2; <span class="rv" id="rv-pd">200</span></label>
+            <input type="range" id="k-pd" min="150" max="240" step="5" value="200"></div>
+          <div class="ctl"><label for="k-import">Import rate $/kWh (LIPA weighted)</label>
+            <input type="number" id="k-import" min="0" step="0.01" value="0.194"></div>
+          <div class="ctl"><label for="k-export">Export credit $/kWh</label>
+            <input type="number" id="k-export" min="0" step="0.01" value="0.05"></div>
+          <div class="ctl"><label for="k-cpw">Cost $/Wp</label>
+            <input type="number" id="k-cpw" min="0" step="0.05" value="3.00"></div>
+          <div class="ctl"><label for="k-self">Self-consumption</label>
+            <input type="number" id="k-self" min="0" max="1" step="0.05" value="0.55"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">System size</div><div class="v" id="o-kw">&mdash;</div><div class="d" id="o-area">&mdash;</div></div>
+        <div class="kpi"><div class="k">Specific yield</div><div class="v good" id="o-yield">&mdash;</div><div class="d">kWh/kWp/yr, after derate</div></div>
+        <div class="kpi"><div class="k">Year-1 generation</div><div class="v" id="o-gen">&mdash;</div><div class="d">kWh/yr</div></div>
+        <div class="kpi"><div class="k">Year-1 savings</div><div class="v" id="o-save">&mdash;</div><div class="d" id="o-save-d">&mdash;</div></div>
+        <div class="kpi"><div class="k">Net cost after 30% ITC</div><div class="v" id="o-net">&mdash;</div><div class="d" id="o-cost">&mdash;</div></div>
+        <div class="kpi"><div class="k">Simple payback</div><div class="v" id="o-pay">&mdash;</div><div class="d">net cost / yr-1 savings</div></div>
+        <div class="kpi span2"><div class="k">25-yr NPV @ 5% (0.5%/yr degradation)</div><div class="v" id="o-npv">&mdash;</div><div class="d" id="o-npv-d">&mdash;</div></div>
+      </div>
+      <div class="delta" id="marginal">&mdash;</div>
+
+      <details open>
+        <summary>Provenance &mdash; every call, source, and assumption</summary>
+        <div class="prov">
+          <p style="margin:8px 0 4px">This page makes <strong>no API call about your roof</strong>. The yield numbers come from a
+          surface of <strong>120 PVGIS PVcalc calls</strong> (every 15&deg; of azimuth &times; five tilts) pre-fetched for
+          <span id="p-site"></span>, embedded below, and interpolated as you drag. The browser computes the rest.</p>
+          <table class="calls">
+            <tr><th>What</th><th>Source (clickable)</th><th>When / count</th></tr>
+            <tr><td>Production yield surface</td>
+              <td><a href="https://re.jrc.ec.europa.eu/api/v5_2/PVcalc" target="_blank" rel="noopener">PVGIS v5.2 PVcalc</a> (EU JRC, keyless; PVGIS-NSRDB)</td>
+              <td>120 calls, pre-fetched</td></tr>
+            <tr><td>Cross-check production</td>
+              <td><a href="https://developer.nrel.gov/docs/solar/pvwatts/v8/" target="_blank" rel="noopener">NREL PVWatts v8</a> &middot;
+                  <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a></td>
+              <td>run proforma.py</td></tr>
+            <tr><td>Tariff (LIPA / PSEG-LI)</td>
+              <td><a href="https://apps.openei.org/USURDB/" target="_blank" rel="noopener">OpenEI URDB</a> &mdash; "Long Island Power Authority"</td>
+              <td>weighted $0.194/kWh</td></tr>
+            <tr><td>Geocode + base map</td>
+              <td><a href="https://www.openstreetmap.org/?mlat=40.66752&mlon=-73.62074#map=19/40.66752/-73.62074" target="_blank" rel="noopener">OpenStreetMap</a> (Nominatim)</td>
+              <td>example location</td></tr>
+            <tr><td>Satellite imagery</td>
+              <td><a href="https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9" target="_blank" rel="noopener">Esri World Imagery</a></td>
+              <td>map tiles, on load</td></tr>
+          </table>
+          <p style="margin:10px 0 4px"><strong>Assumptions</strong> (all editable above or by dragging):</p>
+          <ul>
+            <li>Specific yield interpolated from PVGIS at 14% system loss, then &times; your roof-walk derate.</li>
+            <li>kWp = panel area &times; density (default 200 W/m&sup2;, ~20% modules). Drag a corner to change area.</li>
+            <li>Import rate defaults to the LIPA tariff-weighted rate from a real proforma.py run; set yours.</li>
+            <li>Export credit, self-consumption, $/Wp, ITC 30%, 5% discount, 25 yr, 0.5%/yr degradation &mdash; same constants as proforma.py.</li>
+            <li>US note: PVGIS here uses PVGIS-NSRDB, the same NSRDB NREL PVWatts uses &mdash; so they are not independent; NASA POWER is the independent check.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>Reproduce this on the command line</summary>
+        <div class="prov">
+          <p style="margin:8px 0 4px">Your current layout, as an exact <code>proforma.py</code> run (full pro forma + live tariff):</p>
+          <div class="cli" id="cli">&mdash;</div>
+          <button class="copy" id="copybtn" type="button">Copy command</button>
+          <p style="margin:8px 0 0;color:var(--muted)">From <a href="https://github.com/bigbrownjeff/solar-sizing" target="_blank" rel="noopener">github.com/bigbrownjeff/solar-sizing</a>.
+          Keyless by default (PVGIS); add <code>--api-key</code> for the PVWatts cross-check.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Get real quotes (lead-gen &mdash; accuracy first)</summary>
+        <div class="prov">
+          <p style="margin:8px 0 6px">Take the numbers above to installers; make their quote survive contact with this arithmetic.
+          These are starting points, not endorsements:</p>
+          <div class="leads">
+            <a class="lead" href="https://www.energysage.com/" target="_blank" rel="noopener"><b>EnergySage</b><span>Compare multiple installer bids side by side</span></a>
+            <a class="lead" href="https://findenergy.com/ny/" target="_blank" rel="noopener"><b>Find NY installers</b><span>Local certified installer directory</span></a>
+            <a class="lead" href="https://www.nyserda.ny.gov/All-Programs/NY-Sun" target="_blank" rel="noopener"><b>NY-Sun incentives</b><span>NYSERDA state rebate, stacks on the 30% ITC</span></a>
+            <a class="lead" href="https://www.psegliny.com/saveenergyandmoney/cleanenergyprograms" target="_blank" rel="noopener"><b>PSEG-LI programs</b><span>Your utility's interconnection + net-metering terms</span></a>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <noscript><div class="noscript" style="display:block">This page recomputes in the browser; please enable JavaScript. The static fallback is <code>proforma.py</code> at the repo.</div></noscript>
+
+  <footer>
+    <strong>What this is, and isn't.</strong> Production is a typical PVGIS year (2005&ndash;2015 average), not your weather; a lender-grade
+    pro forma carries P50/P90 context. The 0.85 derate is a deliberate, conservative shading knob for a typical roof; a well-sited, unshaded
+    array is closer to 0.95&ndash;1.0 &mdash; validated against real systems (see the repo's validation set). Not a quote, not sizing advice;
+    the first instruction is still to walk the roof. Built by Jeff Pinto &mdash;
+    <a href="https://jeffpinto.com/notes/solar-sizing/" target="_blank" rel="noopener">source note</a> &middot;
+    <a href="https://jeffpinto.com/engage/" target="_blank" rel="noopener">advisory on honest pro formas</a>.
+  </footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+"use strict";
+const SURFACE = {"lat": 40.667519, "lon": -73.620743, "loss_pct": 14, "source": "PVGIS v5.2 PVcalc (PVGIS-NSRDB)", "azimuths": [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345], "tilts": [5, 15, 25, 35, 45], "grid": {"0": {"5": 1081.7, "15": 948.0, "25": 808.7, "35": 687.0, "45": 568.2}, "15": {"5": 1083.9, "15": 955.4, "25": 820.4, "35": 700.8, "45": 585.1}, "30": {"5": 1089.8, "15": 975.0, "25": 853.5, "35": 739.9, "45": 634.4}, "45": {"5": 1098.8, "15": 1004.3, "25": 903.8, "35": 806.9, "45": 715.5}, "60": {"5": 1110.5, "15": 1040.5, "25": 965.0, "35": 889.1, "45": 813.0}, "75": {"5": 1123.8, "15": 1080.7, "25": 1029.7, "35": 974.2, "45": 912.7}, "90": {"5": 1137.9, "15": 1122.0, "25": 1095.0, "35": 1057.1, "45": 1008.2}, "105": {"5": 1151.7, "15": 1161.9, "25": 1155.8, "35": 1134.0, "45": 1095.4}, "120": {"5": 1164.5, "15": 1197.9, "25": 1210.1, "35": 1201.8, "45": 1173.5}, "135": {"5": 1175.5, "15": 1227.6, "25": 1255.7, "35": 1259.7, "45": 1237.8}, "150": {"5": 1183.9, "15": 1250.7, "25": 1290.5, "35": 1303.2, "45": 1288.0}, "165": {"5": 1189.0, "15": 1265.2, "25": 1313.0, "35": 1330.8, "45": 1318.5}, "180": {"5": 1190.8, "15": 1270.2, "25": 1319.8, "35": 1339.6, "45": 1329.6}, "195": {"5": 1188.9, "15": 1264.9, "25": 1312.2, "35": 1330.3, "45": 1317.5}, "210": {"5": 1183.5, "15": 1249.9, "25": 1289.5, "35": 1300.4, "45": 1285.9}, "225": {"5": 1174.9, "15": 1226.1, "25": 1252.8, "35": 1256.3, "45": 1232.3}, "240": {"5": 1163.8, "15": 1194.9, "25": 1205.9, "35": 1196.0, "45": 1166.8}, "255": {"5": 1150.8, "15": 1158.3, "25": 1149.9, "35": 1126.6, "45": 1087.0}, "270": {"5": 1136.7, "15": 1118.0, "25": 1088.2, "35": 1048.6, "45": 998.8}, "285": {"5": 1122.5, "15": 1076.2, "25": 1022.9, "35": 965.6, "45": 902.9}, "300": {"5": 1109.3, "15": 1036.0, "25": 957.9, "35": 880.3, "45": 803.4}, "315": {"5": 1097.8, "15": 1000.3, "25": 897.3, "35": 798.4, "45": 706.8}, "330": {"5": 1089.0, "15": 971.7, "25": 847.9, "35": 733.2, "45": 627.4}, "345": {"5": 1083.5, "15": 953.5, "25": 817.5, "35": 697.2, "45": 581.3}}};
+const SITE = {lat:40.667519, lon:-73.620743};
+// model constants — mirror proforma.py
+const ITC=0.30, DISCOUNT=0.05, DEGRADATION=0.005, NPV_YEARS=25, MARGINAL_KWP=1.0;
+
+// ---- bilinear interpolation over the embedded PVGIS yield surface ----
+function yieldAt(azDeg, tiltDeg){
+  const A=SURFACE.azimuths, T=SURFACE.tilts, G=SURFACE.grid;
+  let az=((azDeg%360)+360)%360;
+  // bracketing azimuths (wrap 360->0)
+  let a0=A[0], a1=A[A.length-1];
+  for(let i=0;i<A.length;i++){ if(A[i]<=az) a0=A[i]; }
+  let idx=A.indexOf(a0); let a1v=A[(idx+1)%A.length]; let a1span=(a1v-a0+360)%360||360;
+  let fa=a1span?(((az-a0+360)%360)/a1span):0;
+  // bracketing tilts (clamp)
+  let t=Math.max(T[0],Math.min(T[T.length-1],tiltDeg));
+  let t0=T[0],t1=T[T.length-1];
+  for(let i=0;i<T.length-1;i++){ if(T[i]<=t){t0=T[i];t1=T[i+1];} }
+  let ft=(t1>t0)?((t-t0)/(t1-t0)):0;
+  const g=(a,tl)=>G[String(a)][String(tl)];
+  const y00=g(a0,t0),y01=g(a0,t1),y10=g(a1v,t0),y11=g(a1v,t1);
+  const yt0=y00+(y10-y00)*fa, yt1=y01+(y11-y01)*fa;
+  return yt0+(yt1-yt0)*ft;
+}
+
+// ---- geometry: meters <-> latlng around the site ----
+const MPD_LAT=111320, MPD_LON=111320*Math.cos(SITE.lat*Math.PI/180);
+function offset(lat,lon,dxE,dyN){ return [lat+dyN/MPD_LAT, lon+dxE/MPD_LON]; }
+function metersBetween(lat,lon,lat2,lon2){ return [(lon2-lon)*MPD_LON,(lat2-lat)*MPD_LAT]; } // [dxE,dyN]
+// rotated-rectangle corners: azimuth = down-slope face dir (compass), ridge is perpendicular
+function corners(p){
+  const ar=p.az*Math.PI/180;
+  const fx=Math.sin(ar), fy=Math.cos(ar);     // face (down-slope) unit, map XY (E,N)
+  const rx=fy, ry=-fx;                          // ridge unit (perpendicular)
+  const hw=p.wid/2, hl=p.len/2;
+  const pts=[[+hl,+hw],[+hl,-hw],[-hl,-hw],[-hl,+hw]].map(([l,w])=>{
+    const dxE=rx*l+fx*w, dyN=ry*l+fy*w;
+    return offset(p.lat,p.lon,dxE,dyN);
+  });
+  return pts;
+}
+
+// ---- the two seeded example planes (roughly east- and west-facing) ----
+const planes=[
+  {id:'E', name:'East-facing plane', color:'#2f6f4e', lat:SITE.lat+0.000045, lon:SITE.lon+0.000055, len:7.0, wid:3.6, az:120, tilt:25},
+  {id:'W', name:'West-facing plane', color:'#a3532b', lat:SITE.lat-0.000045, lon:SITE.lon-0.000055, len:7.0, wid:3.6, az:300, tilt:25},
+];
+
+let map=null, poly={}, centerM={}, cornerM={};
+function initMap(){
+  try{
+    map=L.map('map',{zoomControl:true}).setView([SITE.lat,SITE.lon],20);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {maxZoom:21, attribution:'Imagery &copy; Esri'}).addTo(map);
+    planes.forEach(drawPlane);
+  }catch(e){ document.getElementById('maperr').style.display='block'; }
+}
+function drawPlane(p){
+  if(!map) return;
+  if(poly[p.id]) poly[p.id].setLatLngs(corners(p));
+  else poly[p.id]=L.polygon(corners(p),{color:p.color,weight:2,fillOpacity:0.32}).addTo(map);
+  // center drag handle
+  if(!centerM[p.id]){
+    centerM[p.id]=L.marker([p.lat,p.lon],{draggable:true,title:p.name+' — drag to move'}).addTo(map);
+    centerM[p.id].on('drag',e=>{ p.lat=e.latlng.lat; p.lon=e.latlng.lng; drawPlane(p); recompute(); });
+  } else centerM[p.id].setLatLng([p.lat,p.lon]);
+  // one corner drag handle (resize)
+  const c=corners(p)[0];
+  if(!cornerM[p.id]){
+    cornerM[p.id]=L.marker(c,{draggable:true,title:'drag to resize',
+      icon:L.divIcon({className:'',html:'<div style="width:13px;height:13px;background:#fff;border:2px solid '+p.color+';border-radius:2px;transform:translate(-6px,-6px)"></div>'})}).addTo(map);
+    cornerM[p.id].on('drag',e=>{
+      const [dxE,dyN]=metersBetween(p.lat,p.lon,e.latlng.lat,e.latlng.lng);
+      const ar=p.az*Math.PI/180, fx=Math.sin(ar),fy=Math.cos(ar), rx=fy,ry=-fx;
+      const projRidge=Math.abs(dxE*rx+dyN*ry), projFace=Math.abs(dxE*fx+dyN*fy);
+      p.len=Math.max(2,2*projRidge); p.wid=Math.max(2,2*projFace);
+      drawPlane(p); recompute();
+    });
+  } else cornerM[p.id].setLatLng(c);
+}
+
+// ---- per-plane control cards ----
+function buildCards(){
+  const host=document.getElementById('planes');
+  planes.forEach(p=>{
+    const card=document.createElement('div'); card.className='plane';
+    card.innerHTML=
+      '<h3><span><span class="dot" style="background:'+p.color+'"></span>'+p.name+'</span>'
+        +'<span class="rv" id="kw-'+p.id+'"></span></h3>'
+      +'<div class="grid">'
+      +'<div class="ctl"><label>Tilt <span class="rv" id="rt-'+p.id+'">'+p.tilt+'&deg;</span></label>'
+        +'<input type="range" id="tilt-'+p.id+'" min="0" max="50" step="1" value="'+p.tilt+'"></div>'
+      +'<div class="ctl"><label>Azimuth <span class="rv" id="ra-'+p.id+'">'+p.az+'&deg;</span></label>'
+        +'<input type="range" id="az-'+p.id+'" min="0" max="359" step="1" value="'+p.az+'"></div>'
+      +'</div>';
+    host.appendChild(card);
+    card.querySelector('#tilt-'+p.id).addEventListener('input',e=>{
+      p.tilt=+e.target.value; document.getElementById('rt-'+p.id).innerHTML=p.tilt+'&deg;'; recompute(); });
+    card.querySelector('#az-'+p.id).addEventListener('input',e=>{
+      p.az=+e.target.value; document.getElementById('ra-'+p.id).innerHTML=p.az+'&deg;'; drawPlane(p); recompute(); });
+  });
+}
+
+// ---- knobs ----
+const $=id=>document.getElementById(id);
+function knobs(){
+  return {derate:+$('k-derate').value, pd:+$('k-pd').value, imp:+$('k-import').value,
+    exp:+$('k-export').value, cpw:+$('k-cpw').value, self:+$('k-self').value};
+}
+['k-derate','k-pd','k-import','k-export','k-cpw','k-self'].forEach(id=>{
+  document.addEventListener('input',e=>{ if(e.target.id===id){
+    if(id==='k-derate')$('rv-derate').textContent=(+$('k-derate').value).toFixed(2);
+    if(id==='k-pd')$('rv-pd').textContent=$('k-pd').value;
+    recompute(); }});
+});
+
+function money(x){ return (x<0?'-$':'$')+Math.abs(Math.round(x)).toLocaleString(); }
+function yrs(x){ return !isFinite(x)?'never':x.toFixed(1)+' yr'; }
+
+// ---- the live pro forma (mirrors proforma.py build_proforma) ----
+function recompute(){
+  const k=knobs(); let kwTot=0, genTot=0, areaTot=0;
+  planes.forEach(p=>{
+    const area=p.len*p.wid;                       // m^2
+    const kw=area*k.pd/1000;                       // kWp
+    const y=yieldAt(p.az,p.tilt)*k.derate;         // kWh/kWp/yr after derate
+    p._kw=kw; p._gen=kw*y; p._area=area;
+    kwTot+=kw; genTot+=kw*y; areaTot+=area;
+    const el=$('kw-'+p.id); if(el) el.textContent=kw.toFixed(1)+' kWp · '+Math.round(area)+' m²';
+  });
+  const yieldEff = kwTot>0 ? genTot/kwTot : 0;
+  const selfKwh=genTot*k.self, expKwh=genTot-selfKwh;
+  const savings=selfKwh*k.imp+expKwh*k.exp;
+  const cost=kwTot*1000*k.cpw, net=cost*(1-ITC);
+  const payback= savings>0? net/savings : Infinity;
+  // 25-yr NPV
+  let npv=-net, deg=1, disc=1;
+  for(let i=0;i<NPV_YEARS;i++){ disc*=1+DISCOUNT; npv+=savings*deg/disc; deg*=1-DEGRADATION; }
+  // marginal next kWp at export credit
+  const margGen=yieldEff*MARGINAL_KWP, margVal=margGen*k.exp, margNet=MARGINAL_KWP*1000*k.cpw*(1-ITC);
+  const margPay= margVal>0? margNet/margVal : Infinity;
+
+  $('o-kw').textContent=kwTot.toFixed(1)+' kWp';
+  $('o-area').textContent=Math.round(areaTot)+' m² panel · '+k.pd+' W/m²';
+  $('o-yield').textContent=Math.round(yieldEff);
+  $('o-gen').textContent=Math.round(genTot).toLocaleString();
+  $('o-save').textContent=money(savings)+'/yr';
+  $('o-save-d').textContent=Math.round(selfKwh).toLocaleString()+' self @ $'+k.imp.toFixed(3)+' · '+Math.round(expKwh).toLocaleString()+' export @ $'+k.exp.toFixed(2);
+  $('o-cost').textContent=money(cost)+' gross @ $'+k.cpw.toFixed(2)+'/Wp';
+  $('o-net').textContent=money(net);
+  $('o-pay').textContent=yrs(payback);
+  const npvEl=$('o-npv'); npvEl.textContent=money(npv);
+  npvEl.className='v '+(npv>=0?'good':'warn');
+  $('o-npv-d').textContent= npv>=0? 'positive — the array pays for itself within 25 yr' : 'negative — at these knobs it does not clear its cost in 25 yr';
+  const m=$('marginal'); m.className='delta'+(margPay>payback?' warn':'');
+  m.innerHTML='<strong>The reason to buy less:</strong> the next kWp earns only '+money(margVal)+'/yr at your $'+k.exp.toFixed(2)+' export credit — a '+yrs(margPay)+' payback on that last panel. Size to your daytime load, not your roof.';
+
+  // CLI line
+  const kws=planes.map(p=>p._kw.toFixed(1)).join(','), tilts=planes.map(p=>p.tilt).join(','), azs=planes.map(p=>p.az).join(',');
+  $('cli').textContent='python3 proforma.py \\\n  --lat '+SITE.lat+' --lon '+SITE.lon+' \\\n  --kw '+kws+' --tilt '+tilts+' --azimuth '+azs+' \\\n  --source auto --utility "Long Island Power Authority" \\\n  --derate '+k.derate.toFixed(2)+' --export-rate '+k.exp.toFixed(2)+' --self-consumption '+k.self.toFixed(2)+' --cost-per-watt '+k.cpw.toFixed(2);
+}
+
+// ---- boot ----
+document.getElementById('p-site').textContent=SITE.lat.toFixed(5)+', '+SITE.lon.toFixed(5);
+$('copybtn').addEventListener('click',()=>{ navigator.clipboard&&navigator.clipboard.writeText($('cli').textContent);
+  $('copybtn').textContent='Copied'; setTimeout(()=>$('copybtn').textContent='Copy command',1200); });
+buildCards();
+if(window.L) initMap(); else document.getElementById('maperr').style.display='block';
+recompute();
+</script>
+</body>
+</html>
