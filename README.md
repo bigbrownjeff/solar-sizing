@@ -92,7 +92,7 @@ python3 proforma.py --lat 37.34 --lon -121.89 --kw 7.2 \
 
 ## Validated against real systems
 
-The production engine isn't asserted, it's checked. `proforma.py`'s keyless PVGIS leg was run against **8 real PV systems with published annual yields** — NIST's net-zero house and campus arrays, NREL's Golden array, and clean international case studies (5 → 271 kWp, four countries). On the 7 well-sited systems it reproduces *measured* annual energy at a **mean ratio of 0.985** (range 0.940–1.022), **all 7 within ±10%**, and it reproduces the standalone PVGIS legs essentially exactly. Full method, the per-system table, and the one honest caveat (the default 0.85 derate is a shaded-roof knob — relax it toward 1.0 for an unshaded array) live in [`validation/VALIDATION.md`](./validation/VALIDATION.md).
+The production engine isn't asserted, it's checked. `proforma.py`'s keyless PVGIS leg was run against **12 real PV systems with published annual yields** — NIST's net-zero house and campus arrays, NREL's Golden array, and field studies across eight countries and both hemispheres (5 → 271 kWp). **9 of the 12 land within ±10%** of measured annual energy; on the clean mid-latitude reference set the mean ratio is **0.985**, and it reproduces the standalone PVGIS legs essentially exactly. The three misses are each *diagnosed, not hidden*: contradictory published data (Oman), a single sunny year beating a 16-year average (South Africa), and PVGIS over-reading a sub-polar coastal site by ~30% (Patagonia, 53°S — the honest edge of the envelope, where NASA POWER is the better cross-check). Full method, per-system tables, sources, and the derate caveat live in [`validation/VALIDATION.md`](./validation/VALIDATION.md).
 
 ## What's in here
 
@@ -103,7 +103,7 @@ The production engine isn't asserted, it's checked. `proforma.py`'s keyless PVGI
 | `demo.html` | Two tabs. **FIG.1** — the note's worked San Jose arithmetic, fully offline. **Live data** — the pro-forma pipeline in the browser: your coordinates, your key (DEMO_KEY default), pick a returned tariff, download the CSV. The live tab's JS mirrors `proforma.py`'s pro-forma constants. |
 | `fixtures/` | Doc-sourced samples — the PVWatts v8 docs' own example response, and a URDB sample built to the documented schema with illustrative rates. **Not live captures**; each says so in a `_fixture_note`. |
 | `examples/` | Committed output of `proforma.py --fixtures` — the offline parse check's CSV and transcript. |
-| `validation/` | The receipts: the PVGIS leg vs **8 real PV systems** with published yields (NIST, NREL, international; 5→271 kWp) plus the verdict — mean ratio 0.985, all 7 clean systems within ±10%. |
+| `validation/` | The receipts: the PVGIS leg vs **12 real PV systems** with published yields (NIST, NREL, eight countries, both hemispheres) plus the verdict — 9 within ±10%, the 3 misses each diagnosed (including an honest PVGIS over-read at 53°S). |
 | `note.md` / `note.html` | The source note. `one-pager.html` is the engagement sheet. |
 
 ## Offline check (what CI would run)

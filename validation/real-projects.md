@@ -147,3 +147,92 @@ higher/more physically plausible one.
   guaranteed-coverage anchors for the PVWatts comparison.
 - All published figures here are gross PV generation (AC delivered), which is the right
   basis to compare against a pro-forma's modeled annual production before consumption.
+
+## Round 2 - four more systems (estimate vs reality)
+
+Run date 2026-06-25. Four NEW real PV systems with publicly published measured annual yields,
+each verified against a primary source fetched and read for this round. The goal was diversity
+the first 8 lack: this set adds two SOUTHERN HEMISPHERE systems (South Africa and Chilean
+Patagonia, both north-facing), a high-latitude maritime site (Ireland), and a fresh semi-arid
+site (a different Turkish array than Burdur). Same method as before: PVGIS leg via the workbook
+with --derate 1.0 (the published actuals already carry each system's own real losses) and URDB
+bypassed (--import-rate 0.15 --no-cross-check). NREL's PVWatts host (developer.nrel.gov) was
+still down on the run date, so the PVWatts column records "NREL down 2026-06-24" for every row.
+Year-1 generation is row 8 of each CSV; ratio (pf/pub) is workbook / published. Azimuth is
+COMPASS degrees (0=N, 90=E, 180=S, 270=W); the workbook maps compass to PVGIS aspect internally
+(compass 0 north = aspect 180, the equator-away orientation a Southern Hemisphere array uses).
+
+| system id / name | location (lat,lon) | kWp | tilt / az (compass) | published kWh/yr (+ year span) | source URL | PVGIS kWh/yr | ratio (pub/PVGIS) | PVWatts kWh/yr | proforma kWh/yr | ratio (pf/pub) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| NMMU rooftop (Gqeberha / Port Elizabeth, South Africa) -- SH, north-facing | -34.01, 25.67 | 3.2 | 34 / north (compass 0) | 5,757 (calendar 2013, measured AC to grid; PR 84.3 percent) | https://inis.iaea.org/records/9ncxh-r9f98 | 4,922 | 1.170 | NREL down 2026-06-24 | 4,922 | 0.855 |
+| DIT rooftop (Dublin, Ireland) -- maritime, 53 N | 53.4, -6.3 | 1.72 | 53 / due south (compass 180) | 1,522 (Nov 2008 to Oct 2009; 885.1 kWh/kWp; PR 81.5 percent) | https://arrow.tudublin.ie/engschcivart/14/ | 1,570 | 0.970 | NREL down 2026-06-24 | 1,570 | 1.031 |
+| CONAF rooftop (Punta Arenas, Chilean Patagonia) -- SH, sub-polar 53 S -- OUTLIER, see caveat | -53.15, -70.92 | 8.2 | tilt not in fetched text, assumed 53 / north (compass 0) | 7,005.3 gross (one full year, PVsyst-validated measured; PR about 89 percent) | https://www.mdpi.com/2071-1050/12/21/9227 | 9,350 | 0.749 | NREL down 2026-06-24 | 9,350 | 1.335 |
+| Koprubasi Vocational School rooftop (Manisa, Turkiye) | 38.751, 28.395 | 30 | 12 / 20 deg E of S (compass 160) | 45,592 (one year from May 2018, measured AC; PR 83.61 percent) | https://jksus.org/rooftop-solar-photovoltaic-pv-plant-one-year-measured-performance-and-simulations/ | 42,133 | 1.082 | NREL down 2026-06-24 | 42,133 | 0.924 |
+
+Round 2 result: 2 of 4 land within +/-10 percent (Dublin 1.031, Manisa 0.924). Two miss, one in
+each direction, and both are at the latitude/climate extremes this round deliberately reached
+for. The PVGIS and proforma columns are identical here because this round ran only the single
+PVGIS leg through the workbook (no separate standalone PVGIS leg), so pf/pub is the load-bearing
+ratio. Note one convention difference from the Round 1 table: there the "ratio (pub/PVGIS)"
+column reads above 1.0 when PVGIS under-predicts; the same holds here.
+
+Per-system notes and the two misses (stated honestly, not hidden):
+
+NMMU rooftop, Gqeberha / Port Elizabeth, South Africa. Southern Hemisphere anchor and a clean
+small rooftop: 3.2 kWp, 14 poly-Si modules in two strings of seven, fixed tilt 34, facing north,
+at the Nelson Mandela Metropolitan University Outdoor Research Facility (34.01 S, 25.67 E). It
+delivered a measured 5,757 kWh to the grid in calendar 2013 at a healthy performance ratio of
+84.3 percent (Okello, Van Dyk and Vorster, Energy Conversion and Management 2015; verified via
+the open IAEA INIS record). pf/pub 0.855 is a miss on the conservative side: the real array did
+1,799 kWh/kWp, but PVGIS (PVGIS-SARAH2, 16-year average) predicts only 1,538. The array
+out-produced the long-run satellite average, which is plausible if 2013 was a sunnier-than-mean
+year on the SE South African coast or if SARAH2 slightly under-reads that coastal site. Same
+direction as the Round 1 NREL Golden case (single measured year vs a multi-year model average),
+just larger. Not a sign or azimuth error: north-facing maps to PVGIS aspect 180 correctly, and
+the high published PR rules out a lossy array.
+
+DIT rooftop, Dublin, Ireland. The cleanest Round 2 hit and a genuinely small, high-latitude
+maritime rooftop: 1.72 kWp, 8 Sanyo HIP-215NHE5 mono-Si modules on a flat roof of a 12 m DIT
+(now TU Dublin) building, frame tilt 53 facing due south. Measured Nov 2008 to Oct 2009 at 885.1
+kWh/kWp (total about 1,522 kWh), PR 81.5 percent (Ayompe, Duffy, McCormack and Conlon, Energy
+Conversion and Management 2011; open access via the TU Dublin Arrow repository). pf/pub 1.031 is
+tight. One data note: the paper prints longitude as 6.3 E, which is impossible for Dublin (the
+city is near 6.3 W), so the run used 6.3 W; the sign typo does not move the yield materially at
+this latitude, and the steep 53 degree tilt (roughly the latitude, a winter-weighted choice for
+cloudy Ireland) is taken verbatim from the paper.
+
+CONAF rooftop, Punta Arenas, Chilean Patagonia -- OUTLIER, FLAGGED. The biggest miss of the set
+(pf/pub 1.335) and the one to treat with caution. An 8.2 kWp grid-connected array at a CONAF
+public building 5.5 km south of Punta Arenas at latitude 53 S, the southernmost continental
+city, sub-polar and frequently overcast. Published gross generation is 7,005.3 kWh/yr (of which
+6,778 kWh/yr were exported), at a high performance ratio of about 89 percent (Vidal, Rivera,
+Wheeler and Vicencio, Sustainability 2020, DOI 10.3390/su12219227; abstract and headline figures
+verified, including via the Semantic Scholar metadata, but the full text sits behind an anti-bot
+wall that blocked every fetch route tried). Two honest weaknesses: (1) the array tilt and azimuth
+are NOT in any text that could be fetched, so the run assumed tilt 53 (latitude) facing north,
+and (2) even sweeping the tilt from 20 to 53 degrees, the workbook over-predicts by 24 to 33
+percent, so the gap is not just the tilt guess. The real array achieved only 854 kWh/kWp despite
+its 89 percent PR, which means the in-plane resource is genuinely low; PVGIS-SARAH2 appears to
+over-read this sub-polar coastal site (low sun elevation, persistent cloud, and horizon or snow
+effects a satellite estimate misses). Recommendation: keep this as a documented cautionary case
+(high-latitude PVGIS over-estimate plus unverified siting), not as a clean validation point. It
+is the mirror image of the Round 1 Oman outlier: there the bad number was the published actual,
+here the suspect leg is the model.
+
+Koprubasi Vocational School rooftop, Manisa, Turkiye. A clean recent measured study and a solid
+hit: 30 kWp, 116 Odul OSP260 poly-Si modules tilted 12 degrees and oriented 20 degrees east of
+south (compass 160), on a school roof at 38.751 N, 28.395 E. Total measured AC energy 45,592 kWh
+over its first year from May 2018, specific yield 1,519.73 kWh/kWp, PR 83.61 percent (Journal of
+King Saud University - Science, fetched and read directly). pf/pub 0.924 (about 7.6 percent low)
+is inside the band. This is a second Turkish site, distinct from the Round 1 Burdur array in
+size (30 vs 24 kWp), tilt (12 vs 8), orientation (20 deg E of S vs due south), modules, and
+measured year, so it stands as an independent check rather than a duplicate. The azimuth uses
+the common field-study convention where 0 is due south and negative is east, so the paper's
+"minus 20" went in as compass 160.
+
+Round 2 takeaway: the workbook stayed inside +/-10 percent on the two mid-latitude sites it was
+fairly tested on (maritime Ireland, semi-arid Turkiye) and missed on the two latitude extremes,
+once low (South Africa, a real array beating the long-run average) and once high (Patagonia, a
+likely PVGIS resource over-estimate compounded by unverified tilt). The Patagonia and South
+Africa rows are best read as the documented edges of the engine's reliable envelope, not as
+clean validation points; Dublin and Manisa join the clean set.

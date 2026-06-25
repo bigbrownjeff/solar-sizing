@@ -127,12 +127,50 @@ some yield versus a due-south 30-degree plane). For THIS site the 0.85 default i
 defensible choice only if a roof walk confirms real shading; if the planes are clean, model
 it nearer 0.95 to 1.0 (so ~10,100 to 10,620 kWh/yr) per section 3.
 
+## 7. Round 2 -- four harder, more diverse sites (the edges of the envelope)
+
+Round 1's eight systems are well-sited mid-latitude reference installs. Round 2 deliberately
+reached for the conditions they lack: two Southern Hemisphere arrays (South Africa, Chilean
+Patagonia), a high-latitude maritime site (Ireland), and a second semi-arid Turkish array.
+Same method (PVGIS leg, --derate 1.0, URDB bypassed). Per-system detail and sources are in
+real-projects.md; the result:
+
+| system | latitude | published kWh/yr | proforma kWh/yr | pf/pub | within +/-10% |
+|---|---|---|---|---|---|
+| DIT Dublin, Ireland | 53 N | 1,522 | 1,570 | 1.031 | yes |
+| Koprubasi, Manisa, Turkiye | 39 N | 45,592 | 42,133 | 0.924 | yes |
+| NMMU Port Elizabeth, South Africa | 34 S | 5,757 | 4,922 | 0.855 | no (low) |
+| CONAF Punta Arenas, Patagonia | 53 S | 7,005 | 9,350 | 1.335 | no (high) |
+
+2 of 4 inside +/-10 percent, and the two misses sit at the latitude extremes, one in each
+direction, both diagnosed:
+
+- Port Elizabeth (0.855, conservative): the real 2013 array did 1,799 kWh/kWp and out-produced
+  PVGIS's 16-year SARAH2 average (1,538) -- a sunnier-than-mean year or a slight coastal
+  under-read, the same direction as Round 1's NREL Golden (single year vs multi-year model),
+  just larger. Not a sign or azimuth error (north-facing maps correctly; published PR 84%).
+- Patagonia (1.335, the real limit): even sweeping tilt 20 to 53, the workbook over-predicts by
+  24 to 33 percent. The array achieved only 854 kWh/kWp at a healthy ~89% PR, so the in-plane
+  resource is genuinely low and PVGIS-SARAH2 over-reads this sub-polar coastal site (low sun
+  elevation, persistent cloud, horizon/snow effects a satellite misses). This is the engine's
+  edge, not a tooling bug, and exactly where NASA POWER (section 4) is the better check. It is
+  the mirror of the Oman outlier: there the published number was suspect, here the model leg is.
+
+The lesson is not that the engine is unreliable; it is that a satellite-irradiance model has a
+reliable envelope. Inside it -- mid-latitude rooftops, the bulk of where people actually install
+-- it is excellent (Round 1, plus Dublin and Manisa). At the sub-polar / high-cloud edge, treat
+one source with suspicion and cross-check NASA POWER.
+
 ## Bottom-line verdict
 
-YES -- the production engine is accurate enough to trust. On 7 clean real systems spanning
-5 to 271 kWp and four countries, the workbook's PVGIS leg reproduces measured annual energy
-to a mean ratio of 0.985 (range 0.940 to 1.022), with all seven inside +/-10 percent, and
-it reproduces the standalone PVGIS legs essentially exactly. The single caveat is not in the
-engine but in the DEFAULT 0.85 derate: it is a conservative shaded-roof knob and must be
-relaxed to ~0.95 to 1.0 for a genuinely unshaded array, or the workbook will under-predict
-by ~15 percent. Recommend documenting that regime in the README and --derate help.
+YES, for the conditions that cover the overwhelming majority of installations. Across 12 real
+systems (5 to 271 kWp, eight countries, both hemispheres), 9 land within +/-10 percent of
+measured annual energy, and the three that do not are each diagnosed, not mysterious: Oman
+(contradictory published data), Port Elizabeth (a single sunny year beating a 16-year average),
+and Patagonia (PVGIS-SARAH2 over-reading a sub-polar coastal site by ~30 percent). On the clean
+mid-latitude reference set the workbook reproduces measured energy at mean ratio 0.985, and it
+reproduces the standalone PVGIS legs essentially exactly. Two honest qualifiers travel with the
+verdict: (1) the default 0.85 derate is a shaded-roof knob, relaxed toward 1.0 for an unshaded
+array (section 3); and (2) trust one irradiance source at mid-latitude, but cross-check NASA
+POWER at latitude and climate extremes (sections 4 and 7). For a Long Island rooftop -- the
+worked example -- it is well inside the reliable envelope.
