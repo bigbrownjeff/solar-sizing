@@ -75,15 +75,16 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">Honest-arithmetic solar sizing · computed in your browser · nothing about your roof leaves this page</div>
+    <div class="eyebrow">Honest-arithmetic solar sizing · modelled in your browser · only a coordinate ever leaves, never your address</div>
     <h1>Type your address. See the real number.</h1>
     <p class="sub">Enter an address (or drag the pin). The tool geocodes it, pulls your building's
     <strong>footprint</strong> from OpenStreetMap, fits two roof planes to its true orientation, sizes them from the
-    footprint area, and computes the solar yield for <em>your</em> latitude &mdash; all in the browser, with
-    <strong>no API call about your roof</strong>. It seeds with a Long Island example until you enter an address.
+    footprint area, and computes the solar yield for <em>your</em> point from live public climate data (NASA POWER), modelled
+    in the browser. The only thing sent anywhere is a <strong>coordinate</strong>, never your address; block the network and an embedded offline grid takes over. It seeds with a Long Island example until you enter an address.
     Drag any panel to nudge it, drag a corner to resize, set tilt and azimuth (real roofs are rarely square to the
     compass; the tool handles any angle). Not a quote &mdash; the arithmetic you run <em>before</em> trusting one. The exact
     <code>proforma.py</code> command for your layout is at the bottom.</p>
+    <p class="sub" style="margin-top:8px">This calculator accompanies the write-up <a href="https://jeffpinto.com/notes/solar-sizing/" target="_blank" rel="noopener"><strong>First-principles residential solar sizing &rarr;</strong></a> &mdash; why honest arithmetic beats the configurators, and the full method behind these numbers.</p>
   </header>
 
   <div class="layout">
@@ -143,16 +144,16 @@
       <details open>
         <summary>Provenance &mdash; every call, source, and assumption</summary>
         <div class="prov">
-          <p style="margin:8px 0 4px">This page makes <strong>no API call carrying anything about your roof</strong>. The yield is computed
+          <p style="margin:8px 0 4px">This page sends <strong>only a coordinate</strong> to any service, never your address or a roof detail. The yield is computed
           in your browser by a built-in physical model (Erbs diffuse split &rarr; HDKR anisotropic transposition &rarr; ASHRAE
-          incidence-angle loss &rarr; PVWatts DC&rarr;AC at 14% loss) over an embedded coarse global irradiance grid, for
-          <span id="p-site"></span>. Geocoding, the building footprint, and map tiles are optional conveniences fetched from public
-          services; if any is blocked, the calculation still runs from the pin's coordinates alone.</p>
+          incidence-angle loss &rarr; PVWatts DC&rarr;AC at 14% loss, plus a cell-temperature derate) over <strong>live NASA POWER 0.5&deg; point data</strong> for
+          <span id="p-site"></span>. Geocoding, the irradiance fetch, the building footprint, and map tiles are optional public-data calls on that coordinate;
+          if any is blocked, the calculation still runs in-browser from the pin alone (irradiance falls back to an embedded coarse grid).</p>
           <table class="calls">
             <tr><th>What</th><th>Source (clickable)</th><th>How it's used</th></tr>
-            <tr><td>Irradiance grid (yield)</td>
-              <td><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> climatology (2001&ndash;2020) &mdash; monthly GHI</td>
-              <td>embedded, in-browser model</td></tr>
+            <tr><td>Irradiance + temperature (yield)</td>
+              <td><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> climatology &mdash; monthly GHI + 2m temp, 0.5&deg; point (<span id="p-src">embedded grid</span>)</td>
+              <td>live point fetch; embedded grid offline</td></tr>
             <tr><td>Yield validation</td>
               <td><a href="https://re.jrc.ec.europa.eu/api/v5_2/PVcalc" target="_blank" rel="noopener">PVGIS v5.2 PVcalc</a> (EU JRC) &middot;
                   <a href="https://developer.nrel.gov/docs/solar/pvwatts/v8/" target="_blank" rel="noopener">NREL PVWatts v8</a></td>
@@ -172,7 +173,7 @@
           </table>
           <p style="margin:10px 0 4px"><strong>Assumptions</strong> (all editable above or by dragging):</p>
           <ul>
-            <li>Specific yield is modelled in-browser from monthly GHI for your latitude (14% PVWatts system loss), then &times; your roof-walk derate. Benchmarked live against PVGIS PVcalc: the Long Island example reads &asymp; 1,270 vs PVGIS 1,333 kWh/kWp/yr (&minus;5%, i.e. conservative), but the model leans <strong>optimistic</strong> for cloudy-coastal, maritime and high-latitude sites &mdash; Seattle and London run ~10&ndash;15% high &mdash; because the embedded GHI grid is coarse (~5&deg; lat &times; 10&deg; lon) and bleeds sunny-inland irradiance into coastal cells. Treat the in-browser figure as a ballpark; a site-specific pull via <code>proforma.py --source pvgis</code> is the authoritative check.</li>
+            <li>Specific yield is modelled in-browser (Erbs &rarr; HDKR &rarr; ASHRAE &rarr; 14% PVWatts loss) over <strong>live NASA POWER 0.5&deg; point data</strong> for your coordinate &mdash; monthly GHI plus a production-weighted cell-temperature derate &mdash; then &times; your roof-walk derate. Benchmarked against live PVGIS PVcalc at five sites (Long Island, Seattle, London, Phoenix, Miami): <strong>mean absolute error ~3%</strong>, each within ~7%. If the NASA POWER fetch is blocked the model falls back to an embedded ~5&deg; grid with no temperature term, which can read 10&ndash;15% high on cloudy-coastal roofs; either way a site-specific <code>proforma.py --source pvgis</code> run is the bankable check.</li>
             <li>kWp = panel area &times; density (default 200 W/m&sup2;, ~20% modules). Area is auto-sized from the footprint (~80% usable); drag a corner to change it.</li>
             <li>Two roof planes are auto-placed by fitting a minimum-area rectangle to the OSM footprint: the ridge runs along the long axis, the two faces split off-cardinal to match the building's true orientation.</li>
             <li>Import rate defaults to the LIPA tariff-weighted rate from a real proforma.py run; set yours for your utility.</li>
@@ -207,6 +208,39 @@
           </div>
         </div>
       </details>
+
+      <details>
+        <summary>Better irradiance data &mdash; free &amp; paid sources</summary>
+        <div class="prov">
+          <p style="margin:8px 0 6px">This tool fetches <strong>live NASA POWER 0.5&deg;</strong> climatology (the best keyless, CORS-open source) and falls back to an embedded grid offline. For a finer, site-specific, or bankable estimate, these go deeper. Verified reachable 2026-06-25.</p>
+          <p style="margin:8px 0 2px"><strong>Free</strong></p>
+          <ul>
+            <li><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> &mdash; ~0.5&deg; (~55 km), global, GHI/DNI/DHI + temp, no key (CORS yes; what this tool uses).</li>
+            <li><a href="https://open-meteo.com/en/docs/historical-weather-api" target="_blank" rel="noopener">Open-Meteo (ERA5)</a> &mdash; ~0.25&deg; (~25 km), global, hourly GHI/DNI/DHI/tilted, keyless non-commercial (CORS yes; finer than NASA POWER, a natural next upgrade).</li>
+            <li><a href="https://open-meteo.com/en/docs/satellite-radiation-api" target="_blank" rel="noopener">Open-Meteo (satellite)</a> &mdash; 2.5 to 5 km, Europe/Africa/Asia/Oceania only (no North America yet), hourly (CORS yes).</li>
+            <li><a href="https://re.jrc.ec.europa.eu/pvg_tools/en/" target="_blank" rel="noopener">EU PVGIS</a> &mdash; ~5 km (SARAH3), Europe/Africa/Asia, hourly + TMY + POA, keyless (no CORS; use its web tool or <code>proforma.py --source pvgis</code>).</li>
+            <li><a href="https://developer.nrel.gov/docs/solar/nsrdb/" target="_blank" rel="noopener">NREL NSRDB</a> &mdash; 4 km, US + Americas, hourly GHI/DNI/DHI + TMY, free key.</li>
+            <li><a href="https://developer.nrel.gov/docs/solar/pvwatts/v8/" target="_blank" rel="noopener">NREL PVWatts v8</a> &mdash; US production estimator on NSRDB, free key (the <code>proforma.py</code> cross-check).</li>
+            <li><a href="https://globalsolaratlas.info/download/world" target="_blank" rel="noopener">Global Solar Atlas</a> &mdash; 250 m, global, GHI/DNI/GTI GeoTIFF download, CC-BY 4.0 (World Bank / Solargis).</li>
+            <li><a href="https://www.soda-pro.com/web-services/radiation/cams-radiation-service" target="_blank" rel="noopener">CAMS / McClear</a> &mdash; ~3 to 5 km, Europe/Africa/Mideast, 1 min to hourly, free with registration.</li>
+            <li><a href="https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels" target="_blank" rel="noopener">ERA5 (Copernicus CDS)</a> &mdash; ~31 km, global, hourly since 1940, free account (server-side).</li>
+            <li><a href="https://www.renewables.ninja/" target="_blank" rel="noopener">Renewables.ninja</a> &mdash; MERRA-2 ~50 km / SARAH ~5 km, hourly PV simulation, free non-commercial token.</li>
+            <li><a href="https://solcast.com/data-for-researchers" target="_blank" rel="noopener">Solcast (free tier)</a> &mdash; ~1 to 2 km, global, free for research + home rooftop (10 req/day).</li>
+            <li><a href="https://mn8.meteonorm.com/en/download" target="_blank" rel="noopener">Meteonorm (demo)</a> &mdash; 8 km satellite / station TMY, free sample files.</li>
+          </ul>
+          <p style="margin:8px 0 2px"><strong>Paid / commercial</strong></p>
+          <ul>
+            <li><a href="https://solargis.com/products/prospect/overview" target="_blank" rel="noopener">Solargis</a> &mdash; ~250 m, global, the bankable high-res benchmark (TMY, P90).</li>
+            <li><a href="https://solcast.com/" target="_blank" rel="noopener">Solcast</a> &mdash; ~1 to 2 km, global, live + forecast + historical API.</li>
+            <li><a href="https://www.solaranywhere.com/" target="_blank" rel="noopener">SolarAnywhere</a> &mdash; ~1 km, Americas/Europe, hourly + TMY (Clean Power Research).</li>
+            <li><a href="https://mn8.meteonorm.com/en/meteonorm-version-8" target="_blank" rel="noopener">Meteonorm</a> &mdash; station + 8 km satellite TMY, desktop license.</li>
+            <li><a href="https://www.vaisala.com/en/industries-applications/renewable-energy-and-weather" target="_blank" rel="noopener">Vaisala (3TIER)</a> &mdash; ~3 km, global, hourly + P90.</li>
+            <li><a href="https://www.dnv.com/energy/services/solar-resource-compass/" target="_blank" rel="noopener">DNV Solar Resource Compass</a> &mdash; bankable yield in minutes; free comparison tier, paid report.</li>
+            <li><a href="https://www.3e.eu/synaptiq/" target="_blank" rel="noopener">3E SynaptiQ</a> &mdash; satellite-derived, asset monitoring + resource SaaS.</li>
+            <li><a href="https://ul-renewables.com/" target="_blank" rel="noopener">UL Renewables (AWS Truepower)</a> &mdash; site-measured + satellite, project-grade.</li>
+          </ul>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -217,7 +251,7 @@
     pro forma carries P50/P90 context. The 0.85 derate is a deliberate, conservative shading knob for a typical roof; a well-sited, unshaded
     array is closer to 0.95&ndash;1.0 &mdash; validated against real systems (see the repo's validation set). Not a quote, not sizing advice;
     the first instruction is still to walk the roof. Built by Jeff Pinto &mdash;
-    <a href="https://jeffpinto.com/notes/solar-sizing/" target="_blank" rel="noopener">source note</a> &middot;
+    <a href="https://jeffpinto.com/notes/solar-sizing/" target="_blank" rel="noopener">the full write-up at jeffpinto.com</a> &middot;
     <a href="https://jeffpinto.com/engage/" target="_blank" rel="noopener">advisory on honest pro formas</a>.
   </footer>
 </div>
@@ -230,9 +264,9 @@
    Near-zero-input solar sizing. Type an address → geocode (Nominatim) → pull the
    building footprint (OSM Overpass) → fit two roof planes to its true orientation,
    size from footprint area → compute specific yield CLIENT-SIDE for any latitude.
-   No API call carries anything about your roof: yield is a built-in physical model
-   over an embedded coarse global GHI grid (NASA POWER climatology, 2001–2020).
-   Geocode/footprint/tiles are optional conveniences; the calc runs from coords alone.
+   Yield is a built-in physical model over LIVE NASA POWER 0.5° point data (monthly
+   GHI + temperature), with an embedded coarse grid as the offline fallback. Only a
+   coordinate leaves the page (the same one geocode/footprint use), never your address.
    ─────────────────────────────────────────────────────────────────────────── */
 
 // ===== embedded coarse global GHI grid (monthly kWh/m²/day ×100), NASA POWER =====
@@ -240,7 +274,8 @@ const GHIGRID={"lat0":75,"latStep":-5,"nLat":27,"lon0":-180,"lonStep":10,"nLon":
 
 // ===== model constants — mirror proforma.py =====
 const DISCOUNT=0.05, DEGRADATION=0.005, NPV_YEARS=25, MARGINAL_KWP=1.0;
-const SYS_LOSS=0.14;                 // PVWatts/PVGIS bundled system loss
+const SYS_LOSS=0.14;                 // PVWatts/PVGIS bundled system loss (excludes temperature)
+const TEMP_COEFF=-0.004, NOCT_RISE=18;  // crystalline-Si power temp coeff (/degC); production-hour cell-temp rise over ambient
 const EV_SOLAR_FRACTION=0.6;         // share of EV load met from daytime solar (proforma.py)
 const BATTERY_THROUGHPUT=0.9;        // round-trip/availability factor on battery cycling
 const BATTERY_COST_PER_KWH=1000;     // $/kWh installed, no ITC (2026)
@@ -312,8 +347,15 @@ function specificYield(latDeg, ghi, tiltDeg, azCompassDeg){
 
 // ===== site state (mutable; starts at the Long Island example) =====
 const SITE={lat:40.667519, lon:-73.620743, label:'Rockville Centre, NY (example)'};
-let GHI=ghiMonthly(SITE.lat,SITE.lon);   // recomputed on every relocation
-function yieldAt(azDeg,tiltDeg){ return specificYield(SITE.lat, GHI, tiltDeg, azDeg); }
+let GHI=ghiMonthly(SITE.lat,SITE.lon);   // monthly GHI: live NASA POWER point when available, else embedded grid
+let TEMP=null, TEMP_DERATE=1, DATA_SOURCE='grid';   // TEMP: monthly 2m air temp from NASA POWER (null -> no temp term)
+function computeTempDerate(){            // PVWatts-style cell-temperature derate, production(GHI)-weighted across months
+  if(!TEMP){ TEMP_DERATE=1; return; }
+  let num=0, den=0;
+  for(let m=0;m<12;m++){ const tc=TEMP[m]+NOCT_RISE, dr=1+TEMP_COEFF*(tc-25); num+=GHI[m]*dr; den+=GHI[m]; }
+  TEMP_DERATE = den>0 ? num/den : 1;
+}
+function yieldAt(azDeg,tiltDeg){ return specificYield(SITE.lat, GHI, tiltDeg, azDeg)*TEMP_DERATE; }
 
 // ===== geometry: meters <-> latlng around the current site =====
 let MPD_LAT=111320, MPD_LON=111320*Math.cos(SITE.lat*DEG);
@@ -557,7 +599,8 @@ function placePlanesDefault(centerLat,centerLon){
 // never blocks the result; a slow/blocked footprint just leaves the default in place.
 function relocate(lat, lon, label){
   SITE.lat=lat; SITE.lon=lon; if(label) SITE.label=label;
-  GHI=ghiMonthly(lat,lon); refreshMPD();
+  GHI=ghiMonthly(lat,lon); TEMP=null; DATA_SOURCE='grid'; computeTempDerate(); refreshMPD();  // instant coarse fallback
+  fetchNasa(lat,lon);   // async: upgrade to live NASA POWER point GHI + temperature, re-renders on arrival
   if(map){ map.setView([lat,lon],20); if(pinM) pinM.setLatLng([lat,lon]); }
   // 1) instant default placement + compute so the user sees results with no wait
   rectCenterLatLon=null;
@@ -591,6 +634,23 @@ function fetchTimeout(url, opts, ms){
   const t = ac ? setTimeout(()=>ac.abort(), ms) : null;
   return fetch(url, Object.assign({}, opts, ac?{signal:ac.signal}:{}))
     .finally(()=>{ if(t) clearTimeout(t); });
+}
+
+// NASA POWER climatology (0.5deg point): monthly GHI + 2m air temp, CORS-enabled (access-control-allow-origin: *).
+// Upgrades the instant embedded-grid estimate to point resolution + a cell-temperature derate. Sends only a
+// coordinate (the same one geocoding and the footprint lookup already use); any failure keeps the embedded grid.
+const NASA_MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function fetchNasa(lat,lon){
+  const u='https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN,T2M&community=RE'
+    +'&longitude='+lon.toFixed(4)+'&latitude='+lat.toFixed(4)+'&format=JSON';
+  return fetchTimeout(u,{},9000).then(r=>r.json()).then(j=>{
+    if(Math.abs(lat-SITE.lat)>1e-6||Math.abs(lon-SITE.lon)>1e-6) return;       // user moved again -> stale, ignore
+    const p=j.properties.parameter;
+    const g=NASA_MON.map(m=>+p.ALLSKY_SFC_SW_DWN[m]), t=NASA_MON.map(m=>+p.T2M[m]);
+    if(g.some(v=>v<0)||t.some(v=>v<-90)) return;                                // NASA fill (-999) -> keep embedded grid
+    GHI=g; TEMP=t; DATA_SOURCE='live'; computeTempDerate();
+    recompute(); updateProvenance();
+  }).catch(()=>{ /* keep the embedded-grid fallback already rendered */ });
 }
 async function fetchFootprint(lat,lon){
   const ql='[out:json][timeout:10];(way(around:30,'+lat+','+lon+')["building"];);out geom;';
@@ -652,6 +712,7 @@ function geocode(q){
 function updateProvenance(){
   $('p-site').textContent=SITE.lat.toFixed(5)+', '+SITE.lon.toFixed(5)+(SITE.label?' ('+SITE.label+')':'');
   const a=$('p-osmlink'); if(a) a.href='https://www.openstreetmap.org/?mlat='+SITE.lat.toFixed(5)+'&mlon='+SITE.lon.toFixed(5)+'#map=19/'+SITE.lat.toFixed(5)+'/'+SITE.lon.toFixed(5);
+  const s=$('p-src'); if(s) s.textContent = DATA_SOURCE==='live' ? 'live 0.5° point' : 'embedded grid (offline)';
 }
 
 document.getElementById('addrform').addEventListener('submit',ev=>{
@@ -673,6 +734,7 @@ updateProvenance();
 buildCards();
 if(window.L) initMap(); else document.getElementById('maperr').style.display='block';
 recompute();
+fetchNasa(SITE.lat, SITE.lon);   // upgrade the seed example to live point data on load
 </script>
 </body>
 </html>
