@@ -137,14 +137,16 @@
   <div class="kpis" aria-live="polite">
     <div class="kpi"><div class="k">Right-sized system</div><div class="v good" id="kpi-size">7.2 kWp</div>
       <div class="d">vs. the configurator's 9.1 kWp</div></div>
-    <div class="kpi"><div class="k">Net cost after 30% ITC</div><div class="v" id="kpi-net">$15,120</div>
-      <div class="d" id="kpi-net-d">$21,600 installed − $6,480 ITC</div></div>
-    <div class="kpi"><div class="k">Simple payback</div><div class="v" id="kpi-pb">8.0 yr</div>
+    <div class="kpi"><div class="k">Net cost (2026: no federal ITC)</div><div class="v" id="kpi-net">$21,600</div>
+      <div class="d" id="kpi-net-d">$21,600 installed, federal ITC expired 2025</div></div>
+    <div class="kpi"><div class="k">Simple payback</div><div class="v" id="kpi-pb">11.4 yr</div>
       <div class="d">on tariff-weighted savings of <span id="kpi-sav">$1,890</span>/yr</div></div>
   </div>
 
   <div class="delta" id="delta" aria-live="polite">Same roof, honest inputs: 1.9 kWp smaller and
     $5,700 less sticker than the configurator's recommendation — before either system makes a kilowatt-hour.</div>
+
+  <div class="delta" style="border-left-color:var(--optim)">FIG.1 was published in the 30% federal ITC era. That credit (Section 25D) <strong>expired 12/31/2025</strong>, so the honest column below now carries no federal ITC and a longer payback; the configurator column still claims it, which is the point. Model your own roof at 2026 rules in <a href="./index.html">index.html</a>.</div>
 
   <table>
     <caption>FIG.1, live — San Jose scenario, configurator vs. honest arithmetic</caption>
@@ -156,16 +158,16 @@
       <tr><td>Annual specific yield (kWh/kWp/yr)</td><td class="opt">~1,540</td><td class="hon" id="t-yield">~1,348</td></tr>
       <tr class="out"><td>Recommended system size (kWp)</td><td class="opt">9.1 — sized to 100% annual offset</td><td class="hon" id="t-size">7.2 — sized to the sweet spot</td></tr>
       <tr><td>Installed cost @ $3.00/Wp</td><td class="opt">$27,300</td><td class="hon" id="t-cost">$21,600</td></tr>
-      <tr><td>Federal ITC (30%)</td><td class="opt">−$8,190</td><td class="hon" id="t-itc">−$6,480</td></tr>
-      <tr class="out"><td>Net cost</td><td class="opt">$19,110</td><td class="hon" id="t-net">$15,120</td></tr>
+      <tr><td>Federal ITC</td><td class="opt">−$8,190 — claims an expired credit</td><td class="hon" id="t-itc">$0 — expired 12/31/2025</td></tr>
+      <tr class="out"><td>Net cost</td><td class="opt">$19,110</td><td class="hon" id="t-net">$21,600</td></tr>
       <tr><td>Annual savings (tariff-weighted)</td><td class="opt">$2,580 — overstated</td><td class="hon" id="t-sav">$1,890</td></tr>
-      <tr class="out"><td>Simple payback</td><td class="opt">7.4 yr — on a credit that no longer exists</td><td class="hon" id="t-pb">8.0 yr</td></tr>
+      <tr class="out"><td>Simple payback</td><td class="opt">7.4 yr — on a credit that no longer exists</td><td class="hon" id="t-pb">11.4 yr</td></tr>
     </tbody>
   </table>
 
   <div class="marginal" id="marginal" aria-live="polite"><b>The reason to buy less — </b>
     <span id="marginal-txt">past the self-consumption sweet spot, the next kWp is mostly exported.
-    At your $0.05 export credit it earns about $67/yr against $2,100 of net cost — a 31-year marginal
+    At your $0.05 export credit it earns about $67/yr against $3,000 of net cost — a 45-year marginal
     payback. No configurator shows you this number, because no configurator is paid to show you a
     reason to buy less.</span></div>
 
@@ -177,7 +179,7 @@
         <li><strong>Yield:</strong> specific yield = 1,586 kWh/kWp/yr pre-shading (FIG.1's basis: ~1,348 ÷ 0.85) × your derate.</li>
         <li><strong>Size:</strong> the honest column holds FIG.1's sweet-spot energy target (9,706 kWh/yr ≈ 69% annual offset) — a dirtier roof needs more panels to hit the same energy, so size and cost rise as derate falls. The configurator column sizes to 100% annual offset at a 0.97 derate; it never moves, because the configurator doesn't ask.</li>
         <li><strong>Savings:</strong> 55% of generation is self-consumed (FIG.1's scenario input) and displaces imports at $0.313/kWh — the all-hours tariff-weighted rate FIG.1's savings row implies, below the $0.38 on-peak headline. The other 45% earns your export-credit slider.</li>
-        <li><strong>Payback:</strong> net cost after 30% ITC ÷ annual savings. No discounting, no escalation — simple on purpose.</li>
+        <li><strong>Payback:</strong> net cost ÷ annual savings. No federal ITC (Section 25D expired 12/31/2025); no discounting, no escalation — simple on purpose.</li>
       </ul>
     </div>
   </details>
@@ -253,7 +255,7 @@
       <div class="kpis" aria-live="polite">
         <div class="kpi"><div class="k">Simple payback</div><div class="v good" id="lv-kpi-pb">—</div>
           <div class="d">net cost ÷ year-1 savings</div></div>
-        <div class="kpi"><div class="k">Net cost after 30% ITC</div><div class="v" id="lv-kpi-net">—</div>
+        <div class="kpi"><div class="k">Net cost (2026: no federal ITC)</div><div class="v" id="lv-kpi-net">—</div>
           <div class="d" id="lv-kpi-net-d">—</div></div>
         <div class="kpi"><div class="k">Year-1 savings</div><div class="v" id="lv-kpi-sav">—</div>
           <div class="d" id="lv-kpi-sav-d">—</div></div>
@@ -310,7 +312,7 @@
                              // annual offset). Held constant: shade changes the panel count
                              // needed to reach it, not the target itself.
   var COST_PER_KWP = 3000;   // $/kWp installed — NREL Q4 2025 benchmark ($3.00/Wp, FIG.1)
-  var ITC = 0.30;            // federal investment tax credit (FIG.1)
+  var ITC = 0.0;             // federal ITC: Section 25D expired 12/31/2025 (was 0.30)
   var SELF_CONS = 0.55;      // self-consumption ratio — FIG.1 scenario input
   var IMPORT_TW = 0.31312;   // $/kWh — tariff-weighted average import rate displaced, implied
                              // by FIG.1's savings row (1,890 = 0.55·9,706·x + 0.45·9,706·0.05).
@@ -359,7 +361,7 @@
 
     $("kpi-size").textContent = kwp(m.size) + " kWp";
     $("kpi-net").textContent = usd(m.net, 10);
-    $("kpi-net-d").textContent = usd(m.cost, 100) + " installed − " + usd(m.itc, 10) + " ITC";
+    $("kpi-net-d").textContent = usd(m.cost, 100) + (m.itc > 0 ? " installed − " + usd(m.itc, 10) + " ITC" : " installed, federal ITC expired 2025");
     $("kpi-pb").textContent = yrs(m.payback) + " yr";
     $("kpi-sav").textContent = usd(m.savings, 10);
 
@@ -376,7 +378,7 @@
     $("t-yield").textContent = yieldFmt(m.yieldKwp);
     $("t-size").textContent = kwp(m.size) + " — sized to the sweet spot";
     $("t-cost").textContent = usd(m.cost, 100);
-    $("t-itc").textContent = "−$" + usd(m.itc, 10).slice(1);
+    $("t-itc").textContent = m.itc > 0 ? "−$" + usd(m.itc, 10).slice(1) : "$0 — expired 12/31/2025";
     $("t-net").textContent = usd(m.net, 10);
     $("t-sav").textContent = usd(m.savings, 10);
     $("t-pb").textContent = yrs(m.payback) + " yr";
@@ -436,7 +438,7 @@
   // cookies, no logging, no other endpoint. CORS isn't promised by either API's docs;
   // if a call fails, the error box hands you the CLI line that runs the same pipeline.
   // ---- mirror of proforma.py constants ----
-  var L_ITC = 0.30, L_DISCOUNT = 0.05, L_DEGRADATION = 0.005, L_NPV_YEARS = 25;
+  var L_ITC = 0.0, L_DISCOUNT = 0.05, L_DEGRADATION = 0.005, L_NPV_YEARS = 25;
   var L_LOSSES = 14, L_ARRAY_TYPE = 1, L_MODULE_TYPE = 0;
   var WEEKDAY_FRAC = 5 / 7;                 // TMY has no real calendar: blend, don't invent one
   var WINDOW_LO = 9, WINDOW_HI = 17;        // monthly-fallback production window
@@ -584,7 +586,7 @@
       ["14","Exported energy", Math.round(m.expKwh).toLocaleString("en-US"), "kWh/yr", lusd(m.expVal) + "/yr at the export credit"],
       ["15","Annual savings, year 1", lusd(m.savings), "$/yr", ""],
       ["16","Installed cost", lusd(m.cost), "$", "@ $" + m.cpw.toFixed(2) + "/Wp"],
-      ["17","Federal ITC (30%)", "−" + lusd(m.itc), "$", ""],
+      ["17","Federal ITC", m.itc > 0 ? "−" + lusd(m.itc) : "$0 (expired 2025)", "$", ""],
       ["18","Net cost", lusd(m.net), "$", ""],
       ["19","Simple payback", lyrs(m.payback), "", "no escalation on purpose"],
       ["20","25-yr NPV @ 5%", lusd(m.npv), "$", "0.5%/yr degradation, flat tariff"]
@@ -594,7 +596,7 @@
   function renderLive(m){
     $("lv-kpi-pb").textContent = lyrs(m.payback);
     $("lv-kpi-net").textContent = lusd(m.net);
-    $("lv-kpi-net-d").textContent = lusd(m.cost) + " installed − " + lusd(m.itc) + " ITC";
+    $("lv-kpi-net-d").textContent = lusd(m.cost) + (m.itc > 0 ? " installed − " + lusd(m.itc) + " ITC" : " installed, no federal ITC");
     $("lv-kpi-sav").textContent = lusd(m.savings);
     $("lv-kpi-sav-d").textContent = "import rate " + lrate4(m.rTw) + "/kWh, production-weighted";
 
