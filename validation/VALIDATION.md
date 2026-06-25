@@ -110,9 +110,9 @@ workbook (which tracks PVGIS-raw, 33,976 kWh) simply disagrees with the suspect-
 published 23,595, so the ratio blows up. This is a source-quality problem, not a model
 error, and it is excluded from the 7-clean verdict exactly as flagged in real-projects.md.
 
-## 6. Target site -- 43 Lehigh Court, Rockville Centre NY (40.6718, -73.6358)
+## 6. Example site -- a Long Island split-array roof (Rockville Centre NY area, 40.6675, -73.6207)
 
-Real off-cardinal split array: two planes, 5 kWp each at tilt 30, one ESE (compass 123)
+Example off-cardinal split array: two planes, 5 kWp each at tilt 30, one ESE (compass 123)
 and one WNW (compass 303). PVGIS leg via --source pvgis.
 
 | scenario | derate | specific yield (kWh/kWp/yr) | annual (kWh/yr) |

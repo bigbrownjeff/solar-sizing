@@ -390,7 +390,7 @@ def parse_args(argv=None):
         prog="proforma.py",
         description="Honest 20-row solar pro forma on live data (PVWatts or PVGIS production + URDB tariffs).",
         epilog="Examples:\n"
-               "  python3 proforma.py --lat 40.6718 --lon -73.6358 --kw 5,5 --tilt 30,30 --azimuth 123,303\n"
+               "  python3 proforma.py --lat 40.6675 --lon -73.6207 --kw 5,5 --tilt 30,30 --azimuth 123,303\n"
                "  python3 proforma.py --lat 40.67 --lon -73.64 --kw 7 --source pvgis --utility 'Long Island Power Authority'\n"
                "  python3 proforma.py --lat 40.67 --lon -73.64 --kw 7 --import-rate 0.24  # URDB has no rate for you\n"
                "  python3 proforma.py --fixtures   # offline parse check, no network\n",

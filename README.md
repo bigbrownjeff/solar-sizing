@@ -18,7 +18,7 @@ python3 proforma.py --lat 37.3382 --lon -121.8863 --kw 7.2
 python3 proforma.py --lat 37.3382 --lon -121.8863 --kw 7.2 --source pvgis
 
 # a real split array: E/W roof, two 5 kW planes at 30° tilt, off-cardinal
-python3 proforma.py --lat 40.6718 --lon -73.6358 --kw 5,5 --tilt 30,30 --azimuth 123,303
+python3 proforma.py --lat 40.6675 --lon -73.6207 --kw 5,5 --tilt 30,30 --azimuth 123,303
 ```
 
 Stdlib only — no pip install. The keyless PVGIS path needs nothing at all. PVWatts with no key falls back to `DEMO_KEY`, which api.data.gov caps at **30 requests/IP/hour, 50/day** (a run here is 2–4 requests). A free registered key — https://api.data.gov/signup/, the same key drives both NREL endpoints — gets 1,000/hour:
@@ -49,7 +49,7 @@ Either way you get a full 8760-hour profile, and PVGIS is given the *same* syste
 
 ```bash
 # a real E/W roof: 5 kW facing ~ESE (123°) + 5 kW facing ~WNW (303°), both at 30°
-python3 proforma.py --lat 40.6718 --lon -73.6358 --kw 5,5 --tilt 30,30 --azimuth 123,303
+python3 proforma.py --lat 40.6675 --lon -73.6207 --kw 5,5 --tilt 30,30 --azimuth 123,303
 ```
 
 A single value for `--tilt` or `--azimuth` is broadcast to every plane; otherwise the three lists must be the same length.
@@ -66,13 +66,13 @@ python3 proforma.py --lat 37.3382 --lon -121.8863 --kw 7.2 --tariff 2
 **When URDB doesn't geocode your utility** — and it doesn't always; PSEG Long Island is a real example URDB returns nothing for by lat/lon — fall back to the utility *name*, which finds the filed tariffs anyway:
 
 ```bash
-python3 proforma.py --lat 40.67 --lon -73.64 --kw 7 --utility "Long Island Power Authority"
+python3 proforma.py --lat 40.667 --lon -73.621 --kw 7 --utility "Long Island Power Authority"
 ```
 
 **When URDB has no rate for you at all**, skip it entirely with a manual flat import rate:
 
 ```bash
-python3 proforma.py --lat 40.67 --lon -73.64 --kw 7 --import-rate 0.24   # $/kWh, URDB bypassed
+python3 proforma.py --lat 40.667 --lon -73.621 --kw 7 --import-rate 0.24   # $/kWh, URDB bypassed
 ```
 
 Between the lat/lon match, the `--utility` name lookup, and `--import-rate`, the tool no longer dead-ends on your own utility.
