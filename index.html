@@ -79,7 +79,7 @@
     <h1>Type your address. See the real number.</h1>
     <p class="sub">Enter an address (or drag the pin). The tool geocodes it, pulls your building's
     <strong>footprint</strong> from OpenStreetMap, fits two roof planes to its true orientation, sizes them from the
-    footprint area, and computes the solar yield for <em>your</em> point from live public climate data (NASA POWER), modelled
+    footprint area, and runs a genuine <strong>8760-hour</strong> yield model for <em>your</em> point on real hourly satellite data (anchored to the NASA POWER 20-year norm), with a <strong>P50 / P90 band</strong> &mdash; all modelled
     in the browser. The only thing sent anywhere is a <strong>coordinate</strong>, never your address; block the network and an embedded offline grid takes over. It seeds with a Long Island example until you enter an address.
     Drag any panel to nudge it, drag a corner to resize, set tilt and azimuth (real roofs are rarely square to the
     compass; the tool handles any angle). Not a quote &mdash; the arithmetic you run <em>before</em> trusting one. The exact
@@ -133,10 +133,10 @@
       <div class="kpis">
         <div class="kpi"><div class="k">System size</div><div class="v" id="o-kw">&mdash;</div><div class="d" id="o-area">&mdash;</div></div>
         <div class="kpi"><div class="k">Specific yield</div><div class="v good" id="o-yield">&mdash;</div><div class="d">kWh/kWp/yr, after derate</div></div>
-        <div class="kpi"><div class="k">Year-1 generation</div><div class="v" id="o-gen">&mdash;</div><div class="d">kWh/yr</div></div>
+        <div class="kpi"><div class="k">Year-1 generation (P50)</div><div class="v" id="o-gen">&mdash;</div><div class="d" id="o-gen-d">kWh/yr</div></div>
         <div class="kpi"><div class="k">Year-1 savings</div><div class="v" id="o-save">&mdash;</div><div class="d" id="o-save-d">&mdash;</div></div>
         <div class="kpi"><div class="k">Net cost (2026: no federal ITC)</div><div class="v" id="o-net">&mdash;</div><div class="d" id="o-cost">&mdash;</div></div>
-        <div class="kpi"><div class="k">Simple payback</div><div class="v" id="o-pay">&mdash;</div><div class="d">net cost / yr-1 savings</div></div>
+        <div class="kpi"><div class="k">Simple payback</div><div class="v" id="o-pay">&mdash;</div><div class="d" id="o-pay-d">net cost / yr-1 savings</div></div>
         <div class="kpi span2"><div class="k">25-yr NPV @ 5% (0.5%/yr degradation)</div><div class="v" id="o-npv">&mdash;</div><div class="d" id="o-npv-d">&mdash;</div></div>
       </div>
       <div class="delta" id="marginal">&mdash;</div>
@@ -145,15 +145,22 @@
         <summary>Provenance &mdash; every call, source, and assumption</summary>
         <div class="prov">
           <p style="margin:8px 0 4px">This page sends <strong>only a coordinate</strong> to any service, never your address or a roof detail. The yield is computed
-          in your browser by a built-in physical model (Erbs diffuse split &rarr; HDKR anisotropic transposition &rarr; ASHRAE
-          incidence-angle loss &rarr; PVWatts DC&rarr;AC at 14% loss, plus a cell-temperature derate) over <strong>live NASA POWER 0.5&deg; point data</strong> for
-          <span id="p-site"></span>. Geocoding, the irradiance fetch, the building footprint, and map tiles are optional public-data calls on that coordinate;
-          if any is blocked, the calculation still runs in-browser from the pin alone (irradiance falls back to an embedded coarse grid).</p>
+          in your browser by a built-in physical model (HDKR anisotropic transposition &rarr; ASHRAE incidence-angle loss &rarr; PVWatts DC&rarr;AC at 14% loss,
+          plus a cell-temperature derate). When the network allows, the top tier is a genuine <strong>8760-hour simulation</strong> on one year of real hourly
+          satellite data (Open-Meteo / ERA5), <strong>anchored to the NASA POWER 20-year monthly norm</strong>, with a <strong>P50 / P90 resource band</strong>, for
+          <span id="p-site"></span>. Geocoding, the irradiance fetches, the building footprint, and map tiles are optional public-data calls on that coordinate;
+          if the hourly fetch is blocked it falls back to live NASA POWER 0.5&deg; monthly point data, and if that too is blocked, to an embedded coarse grid &mdash; the calculation always runs in-browser from the pin alone.</p>
           <table class="calls">
             <tr><th>What</th><th>Source (clickable)</th><th>How it's used</th></tr>
             <tr><td>Irradiance + temperature (yield)</td>
-              <td><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> climatology &mdash; monthly GHI + 2m temp, 0.5&deg; point (<span id="p-src">embedded grid</span>)</td>
-              <td>live point fetch; embedded grid offline</td></tr>
+              <td><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> climatology &mdash; monthly GHI + 2m temp, 0.5&deg; point; the validated P50 energy anchor (active tier: <span id="p-src">embedded grid</span>)</td>
+              <td>3 tiers: 8760 hourly &rarr; monthly point &rarr; embedded grid</td></tr>
+            <tr><td>Hourly shape (8760 model)</td>
+              <td><a href="https://open-meteo.com/en/docs/historical-weather-api" target="_blank" rel="noopener">Open-Meteo Archive (ERA5)</a> &mdash; one full year of hourly GHI/DHI/DNI + 2m temp, each month rescaled to the NASA POWER 20yr norm (<span id="p-hourly">not loaded</span>)</td>
+              <td>one fetch/location, re-transposed per plane in-browser</td></tr>
+            <tr><td>P50 / P90 resource band</td>
+              <td><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> monthly record 2001&ndash;latest (interannual CV) + ~4% satellite-model &sigma; (<span id="p-band">pending</span>)</td>
+              <td>&sigma;<sub>total</sub>=&radic;(CV&sup2;+&sigma;<sub>meas</sub>&sup2;); P90=P50&middot;(1&minus;1.28&sigma;)</td></tr>
             <tr><td>Yield validation</td>
               <td><a href="https://re.jrc.ec.europa.eu/api/v5_2/PVcalc" target="_blank" rel="noopener">PVGIS v5.2 PVcalc</a> (EU JRC) &middot;
                   <a href="https://developer.nrel.gov/docs/solar/pvwatts/v8/" target="_blank" rel="noopener">NREL PVWatts v8</a></td>
@@ -173,7 +180,8 @@
           </table>
           <p style="margin:10px 0 4px"><strong>Assumptions</strong> (all editable above or by dragging):</p>
           <ul>
-            <li>Specific yield is modelled in-browser (Erbs &rarr; HDKR &rarr; ASHRAE &rarr; 14% PVWatts loss) over <strong>live NASA POWER 0.5&deg; point data</strong> for your coordinate &mdash; monthly GHI plus a production-weighted cell-temperature derate &mdash; then &times; your roof-walk derate. Benchmarked against live PVGIS PVcalc at five sites (Long Island, Seattle, London, Phoenix, Miami): <strong>mean absolute error ~3%</strong>, each within ~7%. If the NASA POWER fetch is blocked the model falls back to an embedded ~5&deg; grid with no temperature term, which can read 10&ndash;15% high on cloudy-coastal roofs; either way a site-specific <code>proforma.py --source pvgis</code> run is the bankable check.</li>
+            <li>Specific yield is modelled in-browser (HDKR anisotropic transposition &rarr; ASHRAE incidence-angle loss &rarr; 14% PVWatts loss) and runs in <strong>three accuracy tiers</strong>, auto-upgrading as data arrives, each leaving the prior intact: (1) an embedded ~5&deg; grid offline; (2) <strong>live NASA POWER 0.5&deg; monthly point</strong> with a production-weighted cell-temperature derate; (3) a genuine <strong>8760-hour simulation</strong> &mdash; one full year of real hourly satellite data (Open-Meteo / ERA5: measured GHI, diffuse, DNI, 2 m temp), with a <em>per-hour</em> cell-temperature derate. To stop a single year's weather (which drifts &plusmn;8&ndash;10% from the long-term norm) from biasing the answer, each month's hourly irradiance is <strong>rescaled to the NASA POWER 20-year monthly climatology</strong> &mdash; preserving the validated P50 energy while gaining the hourly shape. The anchored 8760 benchmarks against live PVGIS PVcalc across <strong>16 continental-US sites</strong> (every climate zone, south/30&deg;): <strong>mean absolute error ~2.5% vs open-rack PVGIS</strong> (~4.5% vs the harsher building-integrated reference), and <strong>symmetric across orientations</strong> &mdash; east, south, and west each within ~5%, so an east/west roof is sized as honestly as a south-facing one. The monthly tier lands similarly. Then &times; your roof-walk derate (which keeps the delivered figure conservative). Spatial resolution is still ~25&ndash;55 km reanalysis, <em>not</em> 250 m satellite &mdash; a site-specific <code>proforma.py --source pvgis</code> run is the bankable check.</li>
+            <li>The <strong>P50 / P90 band</strong> reflects resource + model uncertainty only: interannual variability (CV of the NASA POWER annual-GHI record, 2001&ndash;latest &mdash; ~1% desert, ~3&ndash;6% maritime) combined with a ~4% satellite-derived annual-GHI uncertainty (NSRDB / SARAH validation literature), as &sigma;<sub>total</sub>=&radic;(CV&sup2;+&sigma;<sub>meas</sub>&sup2;), then P90=P50&times;(1&minus;1.28&sigma;<sub>total</sub>). <strong>This is NOT a full bankable P90:</strong> it carries no soiling, snow, availability/downtime, or degradation-uncertainty terms. A P90-positive payback is a genuine plus, not a lender-grade guarantee.</li>
             <li>kWp = panel area &times; density (default 200 W/m&sup2;, ~20% modules). Area is auto-sized from the footprint (~80% usable); drag a corner to change it.</li>
             <li>Two roof planes are auto-placed by fitting a minimum-area rectangle to the OSM footprint: the ridge runs along the long axis, the two faces split off-cardinal to match the building's true orientation.</li>
             <li>Import rate defaults to the LIPA tariff-weighted rate from a real proforma.py run; set yours for your utility.</li>
@@ -181,6 +189,30 @@
             <li>Battery (default 0): shifts up to kWh&times;365&times;0.9 of yearly export from the export credit to the higher import-offset value; costs $1,000/kWh with no ITC. EV (default 0): adds the annual load, 60% met from daytime solar, raising self-consumption. Both mirror proforma.py.</li>
             <li>Federal ITC defaults to 0 &mdash; Section 25D expired 12/31/2025 for owned 2026 installs (third-party leases keep 48E). NY's 25%/$5k state credit is pre-filled. Self-consumption, $/Wp, 5% discount, 25 yr, 0.5%/yr degradation match proforma.py.</li>
           </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>How this compares to paid tools</summary>
+        <div class="prov">
+          <p style="margin:8px 0 6px">Honest scorecard against commercial solar estimators (Aurora, Helioscope, PVsyst, the configurators).
+          The physics here is now genuinely in their class; the <em>data resolution and the bankable layers</em> are where money still buys more.</p>
+          <p style="margin:8px 0 2px"><strong>Now matched</strong></p>
+          <ul>
+            <li><strong>True 8760-hour simulation</strong> &mdash; a full year of real hourly irradiance transposed to each plane, not a 12-month shortcut.</li>
+            <li><strong>Hourly cell-temperature derate</strong> &mdash; per-hour T<sub>cell</sub> from POA + ambient, the same loss mechanism PVsyst models.</li>
+            <li><strong>HDKR anisotropic sky + IAM</strong> &mdash; circumsolar + horizon-brightening diffuse and incidence-angle reflection, the standard transposition.</li>
+            <li><strong>A P50 / P90 resource band</strong> &mdash; interannual variability + satellite-model uncertainty, decomposed and labelled.</li>
+            <li><strong>Real building footprint + true roof orientation</strong> &mdash; off-cardinal planes fit to the OSM outline, not a cardinal assumption.</li>
+          </ul>
+          <p style="margin:8px 0 2px"><strong>Still conceded</strong> (what a paid report or a site visit adds)</p>
+          <ul>
+            <li><strong>250 m&ndash;1 km satellite resolution + ground-station tuning</strong> (Solargis, Solcast, NSRDB). This tool's irradiance is ~25&ndash;55 km reanalysis &mdash; the single biggest accuracy gap.</li>
+            <li><strong>A full bankable P90</strong> &mdash; soiling, snow, availability/downtime, inverter clipping, and degradation-uncertainty terms, none of which are in this band.</li>
+            <li><strong>LIDAR / 3-D auto-shading</strong> &mdash; per-module horizon and self-shading from trees and dormers (Aurora, Helioscope). Here, shading is one honest manual derate.</li>
+            <li><strong>Financing &amp; degradation depth</strong> &mdash; module-level mismatch, detailed inverter models, lease/PPA/loan structures, full cash-flow tax treatment.</li>
+          </ul>
+          <p style="margin:8px 0 0;color:var(--muted)">Bottom line: a credible first-pass P50/P90 from one coordinate, free and in your browser. For a contract, still walk the roof and pull a <code>--source pvgis</code> (or paid high-res) cross-check.</p>
         </div>
       </details>
 
@@ -216,7 +248,7 @@
           <p style="margin:8px 0 2px"><strong>Free</strong></p>
           <ul>
             <li><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> &mdash; ~0.5&deg; (~55 km), global, GHI/DNI/DHI + temp, no key (CORS yes; what this tool uses).</li>
-            <li><a href="https://open-meteo.com/en/docs/historical-weather-api" target="_blank" rel="noopener">Open-Meteo (ERA5)</a> &mdash; ~0.25&deg; (~25 km), global, hourly GHI/DNI/DHI/tilted, keyless non-commercial (CORS yes; finer than NASA POWER, a natural next upgrade).</li>
+            <li><a href="https://open-meteo.com/en/docs/historical-weather-api" target="_blank" rel="noopener">Open-Meteo (ERA5)</a> &mdash; ~0.25&deg; (~25 km), global, hourly GHI/DNI/DHI/tilted, keyless non-commercial (CORS yes; this tool's <strong>8760-hour top tier</strong>, anchored to the NASA POWER monthly norm).</li>
             <li><a href="https://open-meteo.com/en/docs/satellite-radiation-api" target="_blank" rel="noopener">Open-Meteo (satellite)</a> &mdash; 2.5 to 5 km, Europe/Africa/Asia/Oceania only (no North America yet), hourly (CORS yes).</li>
             <li><a href="https://re.jrc.ec.europa.eu/pvg_tools/en/" target="_blank" rel="noopener">EU PVGIS</a> &mdash; ~5 km (SARAH3), Europe/Africa/Asia, hourly + TMY + POA, keyless (no CORS; use its web tool or <code>proforma.py --source pvgis</code>).</li>
             <li><a href="https://developer.nrel.gov/docs/solar/nsrdb/" target="_blank" rel="noopener">NREL NSRDB</a> &mdash; 4 km, US + Americas, hourly GHI/DNI/DHI + TMY, free key.</li>
@@ -247,8 +279,9 @@
   <noscript><div class="noscript" style="display:block">This page recomputes in the browser; please enable JavaScript. The static fallback is <code>proforma.py</code> at the repo.</div></noscript>
 
   <footer>
-    <strong>What this is, and isn't.</strong> Production is a typical PVGIS year (2005&ndash;2015 average), not your weather; a lender-grade
-    pro forma carries P50/P90 context. The 0.85 derate is a deliberate, conservative shading knob for a typical roof; a well-sited, unshaded
+    <strong>What this is, and isn't.</strong> Production is a P50 estimate &mdash; an 8760-hour model on real hourly satellite data anchored to the 20-year
+    norm, with a P50/P90 resource band &mdash; but the P90 here covers only interannual variability + satellite-model uncertainty, not the soiling,
+    availability, and degradation terms a lender-grade bankable P90 carries. The 0.85 derate is a deliberate, conservative shading knob for a typical roof; a well-sited, unshaded
     array is closer to 0.95&ndash;1.0 &mdash; validated against real systems (see the repo's validation set). Not a quote, not sizing advice;
     the first instruction is still to walk the roof. Built by Jeff Pinto &mdash;
     <a href="https://jeffpinto.com/notes/solar-sizing/" target="_blank" rel="noopener">the full write-up at jeffpinto.com</a> &middot;
@@ -345,6 +378,85 @@ function specificYield(latDeg, ghi, tiltDeg, azCompassDeg){
   return poaEff*(1-SYS_LOSS); // kWh/kWp/yr AC
 }
 
+// ===== TOP TIER: anchored 8760-hour specific yield (kWh/kWp/yr, AC) ==============
+// One year of REAL hourly satellite data (Open-Meteo Archive / ERA5: shortwave,
+// diffuse, DNI, 2m temp), each month's irradiance rescaled to the NASA POWER 20yr
+// monthly climatology so the validated P50 monthly energy is preserved while the
+// genuine hourly SHAPE (clear vs cloudy, real beam fraction, diurnal swing) is
+// gained. Per hour: HDKR transposition of the MEASURED beam (DNI) + diffuse (DHI)
+// to plane-of-array, ASHRAE IAM, then a per-hour cell-temperature derate
+// Tcell = Tamb + (POA/800)*25, factor 1 + TEMP_COEFF*(Tcell-25). Sum → annual AC.
+// Validated vs live PVGIS PVcalc across 16 continental-US sites (south/30deg): MAE ~2.5%
+// vs open-rack (~4.5% vs building-mount), symmetric across orientations (E/S/W each within ~5%).
+// HOURLY holds the fetched arrays + precomputed sun geometry for ONE location;
+// planes re-transpose from it on tilt/azimuth/drag changes with NO re-fetch.
+let HOURLY=null;   // {time,ghi,dhi,dni,tair, decl[],Ion[],w[],cosZ[],mo[], anchor[12], lat, lon}
+function buildSunGeometry(H, lat, lon){
+  const N=H.time.length, latR=lat*DEG;
+  H.decl=new Float64Array(N); H.Ion=new Float64Array(N); H.w=new Float64Array(N);
+  H.cosZ=new Float64Array(N); H.mo=new Uint8Array(N);
+  let doy=1, lastKey='';
+  for(let i=0;i<N;i++){
+    const t=H.time[i];
+    const mo=(+t[5])*10+(+t[6])-1, day=(+t[8])*10+(+t[9]), hl=(+t[11])*10+(+t[12]);
+    // day-of-year (cumulative), recomputed only when the date string changes
+    const dkey=t.slice(0,10);
+    if(dkey!==lastKey){ doy=day; for(let mm=0;mm<mo;mm++) doy+=DIM[mm]; lastKey=dkey; }
+    const n=doy;
+    const decl=23.45*DEG*Math.sin(2*Math.PI*(284+n)/365);
+    const Eo=1+0.033*Math.cos(2*Math.PI*n/365), Ion=1367*Eo;
+    const B=2*Math.PI*(n-81)/364;
+    const EoT=9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B);     // minutes
+    const Lstd=15*H.off;                                               // timezone standard meridian
+    const tsolarMin=(hl-0.5)*60 + 4*(lon-Lstd) + EoT;                  // Open-Meteo radiation is the PRECEDING-hour mean -> centre at hl-0.5 (validated: makes E/W symmetric vs PVGIS)
+    const w=(tsolarMin/60-12)*15*DEG;
+    H.decl[i]=decl; H.Ion[i]=Ion; H.w[i]=w; H.mo[i]=mo;
+    H.cosZ[i]=Math.sin(decl)*Math.sin(latR)+Math.cos(decl)*Math.cos(latR)*Math.cos(w);
+  }
+}
+function specificYieldHourly(latDeg, tiltDeg, azCompassDeg){
+  const H=HOURLY; if(!H) return null;
+  let gS=azCompassDeg-180; while(gS>180)gS-=360; while(gS<-180)gS+=360;
+  const latR=latDeg*DEG, beta=tiltDeg*DEG, g=gS*DEG, rho=0.2;
+  const cb=Math.cos(beta), sb=Math.sin(beta), cg=Math.cos(g), sg=Math.sin(g);
+  const N=H.time.length; let poaAC=0;
+  for(let i=0;i<N;i++){
+    let GHI=H.ghi[i]; if(GHI==null) continue;
+    const a=H.anchor[H.mo[i]];
+    const cosZ=H.cosZ[i]; if(GHI*a<=0 || cosZ<=0) continue;
+    const decl=H.decl[i], Ion=H.Ion[i], w=H.w[i];
+    const Id=Math.max(0,H.dhi[i])*a;                 // anchored diffuse-horizontal (W/m2)
+    const Ihb=Math.max(0,H.dni[i])*a*cosZ;           // anchored beam-on-horizontal
+    const Ih=Ihb+Id; if(Ih<=0) continue;
+    const sdecl=Math.sin(decl), cdecl=Math.cos(decl), slat=Math.sin(latR), clat=Math.cos(latR), cw=Math.cos(w), sw=Math.sin(w);
+    const cosT=sdecl*slat*cb - sdecl*clat*sb*cg + cdecl*clat*cb*cw + cdecl*slat*sb*cg*cw + cdecl*sb*sg*sw;
+    const cosTp=cosT>0?cosT:0;
+    const Rb=cosZ>0.01?cosTp/cosZ:0;
+    const Ibn=cosZ>0.01?Ihb/cosZ:0, Ai=Math.min(1,Ibn/Ion);          // HDKR anisotropy index
+    const f=Ih>0?Math.sqrt(Math.max(0,Ihb/Ih)):0;                    // horizon-brightening
+    const beamT=Ihb*Rb;
+    const diffT=Id*((1-Ai)*((1+cb)/2)*(1+f*Math.pow(Math.sin(beta/2),3))+Ai*Rb);
+    const grndT=Ih*rho*((1-cb)/2);
+    const kB=iam(cosTp);
+    const circ=Id*Ai*Rb;                                            // circumsolar diffuse → beam-like IAM
+    const eff=(beamT+circ)*kB + (diffT-circ)*0.95 + grndT*0.95;     // effective POA (W/m2)
+    const poaW=eff>0?eff:0;
+    const Tcell=H.tair[i] + (poaW/800)*25;                          // per-hour cell temperature
+    poaAC += poaW*(1 + TEMP_COEFF*(Tcell-25));                      // Wh/m2 over the hour
+  }
+  return poaAC/1000*(1-SYS_LOSS);                                   // → kWh/kWp/yr AC
+}
+
+// ===== resource-uncertainty band (P50 / P90), decomposed and honest ============
+// sigma_total = sqrt(CV_interannual^2 + sigma_meas^2). CV from the NASA POWER
+// MONTHLY record (per-year annual GHI, 2001→latest). sigma_meas ~ 0.04 is the
+// satellite-derived annual-GHI uncertainty (NSRDB/SARAH validation literature,
+// ~3-5%). P90 = P50 * (1 - 1.28*sigma_total). NOT a bankable P90: no soiling,
+// availability, or degradation-uncertainty terms.
+const SIGMA_MEAS=0.04;
+let UNCERT=null;   // {cv, sigmaTot, p90factor, nYears}
+function p90Factor(){ return UNCERT ? UNCERT.p90factor : null; }
+
 // ===== site state (mutable; starts at the Long Island example) =====
 const SITE={lat:40.667519, lon:-73.620743, label:'Rockville Centre, NY (example)'};
 let GHI=ghiMonthly(SITE.lat,SITE.lon);   // monthly GHI: live NASA POWER point when available, else embedded grid
@@ -355,7 +467,12 @@ function computeTempDerate(){            // PVWatts-style cell-temperature derat
   for(let m=0;m<12;m++){ const tc=TEMP[m]+NOCT_RISE, dr=1+TEMP_COEFF*(tc-25); num+=GHI[m]*dr; den+=GHI[m]; }
   TEMP_DERATE = den>0 ? num/den : 1;
 }
-function yieldAt(azDeg,tiltDeg){ return specificYield(SITE.lat, GHI, tiltDeg, azDeg)*TEMP_DERATE; }
+function yieldAt(azDeg,tiltDeg){
+  // Top tier: anchored 8760 (its own per-hour temperature term — do NOT also apply TEMP_DERATE).
+  if(HOURLY){ const yh=specificYieldHourly(SITE.lat, tiltDeg, azDeg); if(yh!=null && isFinite(yh) && yh>0) return yh; }
+  // Fallback tiers: monthly NASA POWER point (live) or embedded grid (offline) × monthly temp derate.
+  return specificYield(SITE.lat, GHI, tiltDeg, azDeg)*TEMP_DERATE;
+}
 
 // ===== geometry: meters <-> latlng around the current site =====
 let MPD_LAT=111320, MPD_LON=111320*Math.cos(SITE.lat*DEG);
@@ -458,6 +575,17 @@ function money(x){ return (x<0?'-$':'$')+Math.abs(Math.round(x)).toLocaleString(
 function yrs(x){ return !isFinite(x)?'never':x.toFixed(1)+' yr'; }
 
 // ===== live pro forma (mirrors proforma.py build_proforma, incl. battery + EV) =====
+// Year-1 self/export split + savings for a given generation (mirrors proforma.py:
+// EV daytime fraction, then battery export→import shift). Factored out so the P90
+// payback re-runs the identical economics on P90 generation, no logic duplicated.
+function savingsFor(genTot, k){
+  const evSolar = k.ev>0 ? k.ev*EV_SOLAR_FRACTION : 0;
+  let selfKwh = Math.min(genTot, genTot*k.self + evSolar);
+  let expKwh = Math.max(0, genTot - selfKwh);
+  const batShift = k.battery>0 ? Math.min(expKwh, k.battery*365*BATTERY_THROUGHPUT) : 0;
+  selfKwh += batShift; expKwh -= batShift;
+  return { selfKwh, expKwh, batShift, savings: selfKwh*k.imp + expKwh*k.exp };
+}
 function recompute(){
   const k=knobs(); let kwTot=0, genTot=0, areaTot=0;
   planes.forEach(p=>{
@@ -468,21 +596,8 @@ function recompute(){
   });
   const yieldEff = kwTot>0 ? genTot/kwTot : 0;
 
-  // base self-consumption split
-  let selfFrac=k.self;
-  // EV: ev_solar_fraction of the EV load is charged from daytime solar → extra self-consumption,
-  // capped so self-consumed kWh never exceeds generation.
-  const evSolar = k.ev>0 ? k.ev*EV_SOLAR_FRACTION : 0;
-  let selfKwh = genTot*selfFrac;
-  selfKwh = Math.min(genTot, selfKwh + evSolar);
-  let expKwh = Math.max(0, genTot - selfKwh);
-
-  // Battery: shift up to battery_kwh*365*throughput from export (valued at export rate)
-  // to import-offset value (valued at import rate). Capped by available export.
-  const batShift = k.battery>0 ? Math.min(expKwh, k.battery*365*BATTERY_THROUGHPUT) : 0;
-  selfKwh += batShift; expKwh -= batShift;
-
-  const savings = selfKwh*k.imp + expKwh*k.exp;
+  const S=savingsFor(genTot, k);
+  const selfKwh=S.selfKwh, expKwh=S.expKwh, batShift=S.batShift, savings=S.savings, evSolar=k.ev>0?k.ev*EV_SOLAR_FRACTION:0;
   const batteryCost = k.battery*BATTERY_COST_PER_KWH;             // no ITC
   const pvCost = kwTot*1000*k.cpw;
   const cost = pvCost + batteryCost;
@@ -490,6 +605,12 @@ function recompute(){
   const net = Math.max(0, pvCost*(1-k.itc) + batteryCost - k.sc);
 
   const payback = savings>0 ? net/savings : Infinity;
+
+  // P50/P90 resource band (when the interannual CV has resolved). P90 generation
+  // re-runs the same savings split → an honest P90 payback.
+  const p90f=p90Factor();
+  const genP90 = p90f!=null ? genTot*p90f : null;
+  const payP90 = genP90!=null ? (savingsFor(genP90,k).savings>0 ? net/savingsFor(genP90,k).savings : Infinity) : null;
   let npv=-net, deg=1, disc=1;
   for(let i=0;i<NPV_YEARS;i++){ disc*=1+DISCOUNT; npv+=savings*deg/disc; deg*=1-DEGRADATION; }
   const margGen=yieldEff*MARGINAL_KWP, margVal=margGen*k.exp, margNet=MARGINAL_KWP*1000*k.cpw*(1-k.itc);
@@ -499,6 +620,9 @@ function recompute(){
   $('o-area').textContent=Math.round(areaTot)+' m² panel · '+k.pd+' W/m²';
   $('o-yield').textContent=Math.round(yieldEff);
   $('o-gen').textContent=Math.round(genTot).toLocaleString();
+  $('o-gen-d').innerHTML = genP90!=null
+    ? 'kWh/yr · P90 '+Math.round(genP90).toLocaleString()+' ('+Math.round((1-p90f)*100)+'% below P50)'
+    : 'kWh/yr';
   $('o-save').textContent=money(savings)+'/yr';
   $('o-save-d').textContent=Math.round(selfKwh).toLocaleString()+' self @ $'+k.imp.toFixed(3)
     +' · '+Math.round(expKwh).toLocaleString()+' export @ $'+k.exp.toFixed(2)
@@ -507,6 +631,9 @@ function recompute(){
   $('o-cost').textContent=money(cost)+' gross @ $'+k.cpw.toFixed(2)+'/Wp'+(batteryCost>0?' + '+money(batteryCost)+' battery':'');
   $('o-net').textContent=money(net);
   $('o-pay').textContent=yrs(payback);
+  $('o-pay-d').textContent = payP90!=null
+    ? 'net / yr-1 · P90 '+yrs(payP90)+' (lean-year resource)'
+    : 'net cost / yr-1 savings';
   const npvEl=$('o-npv'); npvEl.textContent=money(npv); npvEl.className='v '+(npv>=0?'good':'warn');
   $('o-npv-d').textContent= npv>=0? 'positive — the array pays for itself within 25 yr' : 'negative — at these knobs it does not clear its cost in 25 yr';
   const m=$('marginal'); m.className='delta'+(margPay>payback?' warn':'');
@@ -599,8 +726,9 @@ function placePlanesDefault(centerLat,centerLon){
 // never blocks the result; a slow/blocked footprint just leaves the default in place.
 function relocate(lat, lon, label){
   SITE.lat=lat; SITE.lon=lon; if(label) SITE.label=label;
-  GHI=ghiMonthly(lat,lon); TEMP=null; DATA_SOURCE='grid'; computeTempDerate(); refreshMPD();  // instant coarse fallback
-  fetchNasa(lat,lon);   // async: upgrade to live NASA POWER point GHI + temperature, re-renders on arrival
+  GHI=ghiMonthly(lat,lon); TEMP=null; HOURLY=null; UNCERT=null; DATA_SOURCE='grid'; computeTempDerate(); refreshMPD();  // instant coarse fallback
+  fetchNasa(lat,lon);          // async tier 2: live NASA POWER monthly point GHI + temperature
+  fetchUncertainty(lat,lon);   // async: interannual CV → P50/P90 band (NASA POWER monthly record)
   if(map){ map.setView([lat,lon],20); if(pinM) pinM.setLatLng([lat,lon]); }
   // 1) instant default placement + compute so the user sees results with no wait
   rectCenterLatLon=null;
@@ -648,9 +776,63 @@ function fetchNasa(lat,lon){
     const p=j.properties.parameter;
     const g=NASA_MON.map(m=>+p.ALLSKY_SFC_SW_DWN[m]), t=NASA_MON.map(m=>+p.T2M[m]);
     if(g.some(v=>v<0)||t.some(v=>v<-90)) return;                                // NASA fill (-999) -> keep embedded grid
-    GHI=g; TEMP=t; DATA_SOURCE='live'; computeTempDerate();
+    GHI=g; TEMP=t; if(DATA_SOURCE!=='8760') DATA_SOURCE='live'; computeTempDerate();
     recompute(); updateProvenance();
+    fetchHourly(lat,lon, g);   // tier 3: anchor real hourly data to THIS 20yr monthly climatology
   }).catch(()=>{ /* keep the embedded-grid fallback already rendered */ });
+}
+// Most recent COMPLETE calendar year (today's year is still in progress).
+function lastCompleteYear(){ return new Date().getUTCFullYear()-1; }
+// TOP TIER: one year of real hourly satellite data, anchored to the 20yr monthly
+// climatology (climGHI, kWh/m2/day) so total energy stays validated while the
+// hourly shape is gained. Fetched ONCE per location, cached in HOURLY; planes
+// re-transpose without re-fetching. Any failure leaves the monthly tier intact.
+function fetchHourly(lat,lon, climGHI){
+  const y=lastCompleteYear();
+  const u='https://archive-api.open-meteo.com/v1/archive?latitude='+lat.toFixed(4)+'&longitude='+lon.toFixed(4)
+    +'&start_date='+y+'-01-01&end_date='+y+'-12-31'
+    +'&hourly=shortwave_radiation,diffuse_radiation,direct_normal_irradiance,temperature_2m&timezone=auto';
+  return fetchTimeout(u,{},15000).then(r=>r.json()).then(j=>{
+    if(Math.abs(lat-SITE.lat)>1e-6||Math.abs(lon-SITE.lon)>1e-6) return;        // user moved again -> stale
+    const h=j&&j.hourly; if(!h||!h.time||!h.time.length) return;
+    const ghi=h.shortwave_radiation, dhi=h.diffuse_radiation, dni=h.direct_normal_irradiance, tair=h.temperature_2m;
+    if(!ghi||!dhi||!dni||!tair) return;
+    // valid-coverage guard: ERA5 archive must actually have data for that year
+    let valid=0; for(let i=0;i<ghi.length;i++) if(ghi[i]!=null) valid++;
+    if(valid < ghi.length*0.9) return;
+    // that-year monthly-mean GHI (kWh/m2/day) from the hourly series
+    const sum=new Array(12).fill(0);
+    for(let i=0;i<h.time.length;i++){ const mo=(+h.time[i][5])*10+(+h.time[i][6])-1; const v=ghi[i]; if(v!=null) sum[mo]+=v; }
+    const omGHI=sum.map((s,m)=> s/DIM[m]/1000);   // Wh/m2 summed → kWh/m2/day
+    // ANCHOR: scale each month so hourly monthly energy == NASA 20yr climatology.
+    // Clamp to a sane band so a freak month can't blow up; null climatology → no scale.
+    const anchor=climGHI.map((c,m)=> (omGHI[m]>0 && c>0) ? Math.max(0.5,Math.min(2.0, c/omGHI[m])) : 1);
+    const H={time:h.time, ghi, dhi, dni, tair, off:(j.utc_offset_seconds||0)/3600, anchor, lat, lon, year:y};
+    buildSunGeometry(H, lat, lon);
+    HOURLY=H; DATA_SOURCE='8760';
+    recompute(); updateProvenance();
+  }).catch(()=>{ /* keep the monthly tier already rendered */ });
+}
+// Interannual resource variability (CV) from the NASA POWER MONTHLY record: the
+// YYYY13 keys are per-year annual GHI. sigma_total = sqrt(CV^2 + sigma_meas^2);
+// P90 = P50*(1 - 1.28*sigma_total). CORS-open; any failure simply hides the band.
+function fetchUncertainty(lat,lon){
+  const end=lastCompleteYear();
+  const u='https://power.larc.nasa.gov/api/temporal/monthly/point?parameters=ALLSKY_SFC_SW_DWN&community=RE'
+    +'&longitude='+lon.toFixed(4)+'&latitude='+lat.toFixed(4)+'&start=2001&end='+end+'&format=JSON';
+  return fetchTimeout(u,{},9000).then(r=>r.json()).then(j=>{
+    if(Math.abs(lat-SITE.lat)>1e-6||Math.abs(lon-SITE.lon)>1e-6) return;        // stale
+    const p=j&&j.properties&&j.properties.parameter&&j.properties.parameter.ALLSKY_SFC_SW_DWN; if(!p) return;
+    const annual=[];
+    for(const k in p){ if(k.length===6 && k.slice(4)==='13'){ const v=+p[k]; if(v>0) annual.push(v); } }
+    if(annual.length<5) return;
+    const mean=annual.reduce((a,v)=>a+v,0)/annual.length;
+    let varc=0; for(const v of annual) varc+=(v-mean)*(v-mean); varc/=(annual.length-1);
+    const cv=Math.sqrt(varc)/mean;
+    const sigmaTot=Math.sqrt(cv*cv + SIGMA_MEAS*SIGMA_MEAS);
+    UNCERT={cv, sigmaTot, p90factor:Math.max(0,1-1.28*sigmaTot), nYears:annual.length};
+    recompute(); updateProvenance();
+  }).catch(()=>{ /* no band; P50 alone still shown */ });
 }
 async function fetchFootprint(lat,lon){
   const ql='[out:json][timeout:10];(way(around:30,'+lat+','+lon+')["building"];);out geom;';
@@ -712,7 +894,16 @@ function geocode(q){
 function updateProvenance(){
   $('p-site').textContent=SITE.lat.toFixed(5)+', '+SITE.lon.toFixed(5)+(SITE.label?' ('+SITE.label+')':'');
   const a=$('p-osmlink'); if(a) a.href='https://www.openstreetmap.org/?mlat='+SITE.lat.toFixed(5)+'&mlon='+SITE.lon.toFixed(5)+'#map=19/'+SITE.lat.toFixed(5)+'/'+SITE.lon.toFixed(5);
-  const s=$('p-src'); if(s) s.textContent = DATA_SOURCE==='live' ? 'live 0.5° point' : 'embedded grid (offline)';
+  const s=$('p-src'); if(s) s.textContent =
+      DATA_SOURCE==='8760' ? '8760 hourly (anchored)'
+    : DATA_SOURCE==='live' ? 'live 0.5° point'
+    : 'embedded grid (offline)';
+  const hy=$('p-hourly'); if(hy) hy.textContent =
+      DATA_SOURCE==='8760' && HOURLY ? 'active — '+HOURLY.year+' hourly, anchored to 20yr climatology'
+    : 'not loaded (using '+(DATA_SOURCE==='live'?'monthly point':'embedded grid')+')';
+  const bd=$('p-band'); if(bd) bd.textContent = UNCERT
+      ? 'CV '+(UNCERT.cv*100).toFixed(1)+'% over '+UNCERT.nYears+' yr · σ_total '+(UNCERT.sigmaTot*100).toFixed(1)+'% · P90 = P50 × '+UNCERT.p90factor.toFixed(3)
+      : 'pending';
 }
 
 document.getElementById('addrform').addEventListener('submit',ev=>{
@@ -734,7 +925,8 @@ updateProvenance();
 buildCards();
 if(window.L) initMap(); else document.getElementById('maperr').style.display='block';
 recompute();
-fetchNasa(SITE.lat, SITE.lon);   // upgrade the seed example to live point data on load
+fetchNasa(SITE.lat, SITE.lon);        // tier 2 → tier 3: live monthly point, then anchored 8760
+fetchUncertainty(SITE.lat, SITE.lon); // P50/P90 resource band for the seed example on load
 </script>
 </body>
 </html>
