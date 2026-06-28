@@ -6,6 +6,33 @@ independent production baseline and against current (2026) policy reality. The
 question is not "are they wrong" but "wrong where, by how much, and on what
 assumption."
 
+> **Update 2026-06-28 (same-day re-verification, correction).** Three days
+> after the original run, four tools were re-run live for the same Long Island
+> address. **The "every private calculator still applies the expired 30 percent
+> federal ITC" finding below is overstated and is corrected here.** As of
+> 2026-06-28:
+> - **SolarReviews** still applies it (its June-2026 cost page: "the 30% federal
+>   solar tax credit is the most widely available solar incentive today... saves
+>   homeowners $6,545"). This row stands.
+> - **WattBuy** does **not**: it applies the **NY State 25 percent credit
+>   (capped $5,000)**, not the federal 30 percent. A forced 7.18 kW re-run
+>   ($24,061 install) showed a flat $5,000 credit (the NY cap), not $7,218 (30
+>   percent). The original WattBuy "30% ITC" read was a clean NY-25% number
+>   ($4,631 = exactly 25% of $18,523) and is reclassified.
+> - **Tesla** does **not**: its design tool shows "NY Solar Tax Credit −$5,000"
+>   and no federal credit line at all (the original Tesla row was "doc," an
+>   inference from published methodology, not a live capture).
+> - **EnergySage** (Google Project Sunroof engine) is **indeterminate**: it nets
+>   out unspecified "rebates and tax credits" without itemizing a federal credit.
+>
+> What **does** hold across the whole cohort, and is the durable finding: the
+> optimism is in the **economics layer**: **optimistic payback (6 to 10 years
+> vs an honest ~10 to 15) and 1:1 net-metering / 100-percent-offset
+> assumptions**, plus WattBuy's discrete, jurisdiction-specific error (it
+> offers the **New York City** Property Tax Abatement to a **Nassau County**
+> home, which is not in NYC). Tools update quietly; treat the per-tool incentive
+> column below as of its run date and re-verify before relying on it.
+
 ## The benchmark case
 
 A home at **Rockville Centre NY 11570** (40.6675, -73.6207), PSEG Long Island
@@ -90,10 +117,13 @@ tool gated or blocked, assumptions read from its published methodology.
    kWh per unit sunlight. The note never claimed otherwise; this confirms the
    error is not in the physics.
 
-2. **The optimism is entirely in the economics layer, and in 2026 it is
-   dominated by stale policy.** Every private calculator still applies the **30
-   percent federal ITC that expired 12/31/2025**, a ~$6,300 phantom credit on
-   this system. Stack on full-retail net metering (vs a contested ~$0.05 to 0.19
+2. **The optimism is entirely in the economics layer.** On the 06-25 run it
+   looked dominated by stale policy: a ~$6,300 **phantom 30 percent federal ITC
+   that expired 12/31/2025**. The 2026-06-28 re-verification (see the Update box
+   at the top) narrows that: as of 06-28 the phantom federal credit is confirmed
+   only at **SolarReviews**; WattBuy and Tesla have moved to the NY state credit,
+   EnergySage is indeterminate. The economics-layer optimism that holds
+   cohort-wide is the **payback and net-metering** side. Stack on full-retail net metering (vs a contested ~$0.05 to 0.19
    reality), no shading derate (vs the ~15 percent real-roof haircut), and in
    WattBuy's case an incentive from the wrong county, and you get the 7 to 8 year
    paybacks the tools advertise against an honest ~10 to 15 year number. That is
